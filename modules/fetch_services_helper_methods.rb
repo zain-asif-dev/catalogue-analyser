@@ -53,7 +53,7 @@ module FetchServicesHelperMethods
     retries += 1
     puts e.message
     update_user_and_client
-    if e.message.include?('throttled')
+    if e.message.include?('throttled') || e.message.include?('throttling')
       retry
     elsif retries <= 3
       # update_user_mws_key_valid_status if e.message.include?('denied') ||

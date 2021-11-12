@@ -10,14 +10,14 @@ class FetchCompetitivePricingDataService
   include FetchServicesHelperMethods
   def initialize(user, users, list)
     initialize_common(user, users)
-    @list = list.map { |e| e['asin'] }
+    @list = list.map { |entry| entry[:asin] }
   end
 
   def parse_data(competitive_data_set)
     competitive_data_error(competive_data_set) if competitive_data_set['Error'].present?
     asin = competitive_data_set['ASIN'].to_s
     product = competitive_data_set['Product']
-    vendor_asin_hash(asin, product) if product.dig('CompetitivePricing', 'CompetitivePrices')
+    vendor_asin_hash(asin, product) unless product.dig('CompetitivePricing', 'CompetitivePrices').nil?
   end
 
   def vendor_asin_hash(asin, product)

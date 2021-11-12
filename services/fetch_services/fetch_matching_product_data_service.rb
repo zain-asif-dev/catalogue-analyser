@@ -17,26 +17,38 @@ class FetchMatchingProductDataService
 
   def parse_data(product_data)
     asins_data = []
-    return asins_data if product_data_error(product_data)
+    return asins_data if product_data_error(product_data, asins_data)
 
     asins = [product_data['Products']['Product']].flatten
     asins.each do |asin_data|
-      entry = @entries.find { |item| item['product_id_value'] == product_data['Id'] }
-      asin = asin_data.dig('Identifiers', 'MarketplaceASIN', 'ASIN').strip
-      entry['asin'] = asin
       generate_asins_data_hash(asins_data, asin_data, product_data['Id'], product_data['IdType'])
     end
     asins_data
   end
 
-  def product_data_error(product_data)
+  def product_data_error(product_data, asins_data)
     if product_data['Error'].present?
-      entry = @entries.find { |item| item['product_id_value'] == product_data['Id'] }
-      entry['status'] = 'error'
+      entry = current_entry(product_data['Id'])
+      asins_data << entry_hash_required_data(entry).merge(
+        { status: "error : #{product_data.dig('Error', 'Message')}" }
+      )
       true
     else
       false
     end
+  end
+
+  def entry_hash_required_data(entry)
+    {
+      status: entry['status'],
+      sku: entry['sku'],
+      item_description: entry['item_description'],
+      cost_price: entry['cost_price']
+    }
+  end
+
+  def current_entry(product_data_id)
+    @entries.find { |item| item['product_id_value'] == product_data_id }
   end
 
   def generate_asins_data_hash(asins_data, asin_data, product_data_id, product_data_type)
@@ -48,12 +60,13 @@ class FetchMatchingProductDataService
     when 'ISBN'
       isbn = product_data_id
     end
-    add_asin_hash_to_asins_array(asins_data, asin_data, upc, ean, isbn)
+    asins_data << add_asin_hash_to_asins_array(asin_data, upc, ean, isbn)
+                  .merge(entry_hash_required_data(current_entry(product_data_id)))
   end
 
-  def add_asin_hash_to_asins_array(asins_data, asin_data, upc, ean, isbn)
+  def add_asin_hash_to_asins_array(asin_data, upc, ean, isbn)
     package_quantity = asin_data.dig('AttributeSets', 'ItemAttributes', 'PackageQuantity') || 1
-    asins_data << {
+    {
       asin: asin_data.dig('Identifiers', 'MarketplaceASIN', 'ASIN').strip,
       packagequantity: package_quantity.to_i > 30_000 ? 30_000 : package_quantity.to_i,
       salesrank: sales_rank(asin_data),

@@ -39,21 +39,21 @@ class ReadS3File
     puts "-------------------------Fetch all user's client information-------------------------------------------"
     @users = fetch_all_users_clients
     start_time = Time.now
-    MatchingProductParseService.new(@entries, @users).start
+    @data_array = MatchingProductParseService.new(@entries, @users).start
     end_time = Time.now
     puts "MatchingProductParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     start_time = Time.now
-    @file_progress = CompetitivePriceParseService.new(@entries, @users).start
+    CompetitivePriceParseService.new(@data_array, @users).start
     end_time = Time.now
     puts "CompetitivePriceParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     start_time = Time.now
     @result_array = LowestPriceListingParseService.new(@entries, @users).start
     end_time = Time.now
     puts "LowestPriceListingParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
-    # start_time = Time.now
-    # @file_progress = FeeEstimateParseService.new(@file_progress, @entries, @users).start
-    # end_time = Time.now
-    # puts "FeeEstimateParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
+    start_time = Time.now
+    @file_progress = FeeEstimateParseService.new(@file_progress, @entries, @users).start
+    end_time = Time.now
+    puts "FeeEstimateParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     # start_time = Time.now
     # @file_progress = GetCategoryParseService.new(@file_progress, @entries, @users).start
     # end_time = Time.now

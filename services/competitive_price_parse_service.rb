@@ -13,24 +13,12 @@ class CompetitivePriceParseService < BaseService
     super()
     return if entries.blank?
 
+    initialize_defined_variables(THREAD_COUNT, entries)
     initialize_semaphores
-    initialize_defined_variables
-    @entries = entries.reject { |entry| entry['status'] == 'error' }
+    @entries = entries.reject { |entry| entry[:status].include?('error') }
     @users = users
     @_cached_records = Array.new(@entries)
     @user_count = @users.count
-  end
-
-  def initialize_defined_variables
-    @thread_size = THREAD_COUNT
-    @result_array = []
-    @current_user_index = 0
-  end
-
-  def initialize_semaphores
-    @search_key_semaphore = Mutex.new
-    @search_user_semaphore = Mutex.new
-    @data_set_semaphore = Mutex.new
   end
 
   def start
@@ -69,7 +57,11 @@ class CompetitivePriceParseService < BaseService
   end
 
   def send_fetch_and_process_request(user, retries, current_entries)
-    @result_array << FetchCompetitivePricingDataService.new(user, @users, current_entries).fetch_and_process_data(10)
+    data_array = FetchCompetitivePricingDataService.new(user, @users, current_entries).fetch_and_process_data(10)
+    merge_same_asin_hash(
+      @result_array,
+      data_array.flatten
+    )
   rescue StandardError => e
     exception_printer(e)
     retries += 1
