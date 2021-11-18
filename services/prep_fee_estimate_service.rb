@@ -4,7 +4,10 @@ require 'active_support'
 require 'dotenv/load'
 require 'json'
 require_relative 'base_service'
-require_relative 'fetch_prep_fee_estimate_service'
+require_relative 'fetch_services/fetch_prep_fee_estimate_service'
+require_relative '../modules/services_helper_methods'
+
+# PrepFeeEstimateService
 class PrepFeeEstimateService < BaseService
   include ServicesHelperMethods
   def initialize(entries, users)
@@ -14,30 +17,10 @@ class PrepFeeEstimateService < BaseService
     initialize_common(entries, THREAD_COUNT, users)
   end
 
-  def start
-    return if @_cached_records.blank?
-
-    @threads = []
-    (0...@thread_size).each do
-      @threads << Thread.new { do_scrap }
-    end
-    @threads.each(&:join)
-    # puts "Finished!!!!!!!!!!!!!!!!!"
-    # message = update_service_time_after_processed(@file["id"], "prep_details_last_processed_at")
-    # #puts "-------------------#{message}-----------------------"
-    # @file_progress =  @file_progress + 10
-    # #puts "file_progress-----------------#{@file_progress}--------------------"
-    # message= update_file_progress(@file["id"], @file_progress)
-    # #puts "-------------------#{message}-----------------------"
-    # @file_progress
-  rescue StandardError => e
-    exception_printer(e)
-  end
-
   def send_fetch_and_process_request(user, retries, current_entries)
     merge_same_asin_hash(
       @result_array,
-      FetchPrepFeeEstimateService.new(agent, @users, current_entries.map { |e| e['asin'] }).get_data.flatten
+      FetchPrepFeeEstimateService.new(user, @users, current_entries).parse_data.flatten
     )
   rescue StandardError => e
     exception_printer(e)

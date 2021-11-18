@@ -8,10 +8,10 @@ require_relative '../modules/services_helper_methods'
 class AmazonOffersDetail < BaseService
   BASE_URL = 'https://www.amazon.com/gp/offer-listing/'
   include ServicesHelperMethods
-  def initialize(entries, proxy_usage = true)
+  def initialize(entries)
     super()
     initialize_common(entries, THREAD_COUNT)
-    @proxy_usage = proxy_usage
+    @proxy_usage = nil
   end
 
   def start
@@ -43,10 +43,22 @@ class AmazonOffersDetail < BaseService
 
   def process_query(agent, asin)
     url = BASE_URL + asin
-    offers_page = send_request(agent, url)
+    offers_page = send_request(agent, url, nil, headers_hash)
     return { asin: asin, amazon_selling: !offers_page.xpath("//img[@alt='Amazon.com']").empty? } if offers_page.present?
 
     { asin: asin, status: "processing : AmazonOfferDeail : No data found from url! URL is #{url}" }
+  end
+
+  def headers_hash
+    {
+      'method' => 'GET',
+      'scheme' => 'https',
+      'accept' => 'application/json, text/javascript, */*; q=0.01',
+      'accept-encoding' => 'gzip, deflate, br',
+      'accept-language' => 'en-GB,en;q=0.9',
+      'sec-fetch-mode' => 'cors',
+      'sec-fetch-site' => 'same-site'
+    }
   end
 
   def remaining_data

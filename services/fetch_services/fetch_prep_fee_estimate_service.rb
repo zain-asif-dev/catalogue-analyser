@@ -4,17 +4,28 @@ require 'active_support'
 require 'dotenv/load'
 require 'json'
 require 'peddler'
+require_relative '../../modules/fetch_services_helper_methods'
 
 # FetchPrepFeeEstimateService
 class FetchPrepFeeEstimateService
+  include FetchServicesHelperMethods
   def initialize(user, users, list)
     initialize_common(user, users)
-    @list = list
+    @list = list.map { |entry| entry[:asin] }
+  end
+
+  def set_client
+    MWS.fulfillment_inbound_shipment(
+      merchant_id: @user['merchant_id'],
+      aws_secret_access_key: ENV['AWS_SECRET_ACCESS_KEY'],
+      marketplace: @user['mws_market_place_id'],
+      aws_access_key_id: ENV['AWS_ACCESS_KEY_ID'],
+      auth_token: @user['auth_token'])
   end
 
   def parse_data
     response_array = []
-    response = @client.get_prep_instructions_for_asin('US', @list.reject(&:blank?)).parse
+    response = @client.get_prep_instructions_for_asin('US', @list).parse
     prep_list = [response['ASINPrepInstructionsList']].flatten
 
     prep_list.each do |prep_item|
