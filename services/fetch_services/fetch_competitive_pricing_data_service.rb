@@ -67,8 +67,8 @@ class FetchCompetitivePricingDataService
   end
 
   def competitive_data_error(competitive_data_set)
-    entry = @entries.find { |item| item['asin'] == competitive_data_set['ASIN'] }
-    entry['status'] = 'error'
+    entry = @entries.find { |item| item[:asin] == competitive_data_set['ASIN'] }
+    entry[:status] = "error : FetchCompetitivePricingDataService : #{competitive_data_set.dig('Error', 'Message')}"
   end
 
   def fetch_data(response_arr, list_item)

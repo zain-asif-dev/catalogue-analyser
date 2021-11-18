@@ -10,13 +10,14 @@ class FetchLowestPriceListingService
   include FetchServicesHelperMethods
   def initialize(user, users, current_entries)
     initialize_common(user, users)
-    @list = current_entries.map { |e| e['asin'] }
+    @list = current_entries.map { |entry| entry[:asin] }
   end
 
   def parse_data(pricing_data_set)
     price_data = []
     [pricing_data_set].each do |pricing_data|
       asin = pricing_data['ASIN']
+      lowest_price_listing_error(pricing_data) if pricing_data['Error'].present?
       next if pricing_data['Product'].nil? || pricing_data['Product']['LowestOfferListings'].nil?
 
       lowest_offer_listing = [pricing_data.dig('Product', 'LowestOfferListings', 'LowestOfferListing')].flatten
@@ -25,6 +26,13 @@ class FetchLowestPriceListingService
       price_data << generate_price_data_hash(asin, amazon_offers, merchant_offers)
     end
     price_data
+  end
+
+  def lowest_price_listing_error(pricing_data)
+    {
+      asin: pricing_data['ASIN'],
+      status: "error : FetchLowestPriceListingService : #{product_data.dig('Error', 'Message')}"
+    }
   end
 
   def generate_price_data_hash(asin, amazon_offers, merchant_offers)
@@ -49,7 +57,7 @@ class FetchLowestPriceListingService
   def fetch_amazon_offers(lowest_offer_listing)
     amazon_offers = lowest_offer_listing.reject { |item| item.dig('Qualifiers', 'FulfillmentChannel') == 'Merchant' }
                                         .sort_by { |item| item.dig('Price', 'ListingPrice', 'Amount').to_f }
-    amazon_offers.blank? ? [{}] : amazon_offers 
+    amazon_offers.blank? ? [{}] : amazon_offers
   end
 
   def fetch_data(response_arr, list_item)

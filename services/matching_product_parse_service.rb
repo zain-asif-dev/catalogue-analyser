@@ -21,28 +21,6 @@ class MatchingProductParseService < BaseService
     @user_count = @users.count
   end
 
-  def start
-    @threads = []
-    (0...@thread_size).each do
-      @threads << Thread.new { do_scrap }
-    end
-    @threads.each(&:join)
-    @result_array.flatten
-    # FetchMatchingProductDataService.new(@data_set.flatten, @entries, @result_array).map_data
-    # message = update_service_time_after_processed(@file['id'], 'matching_last_processed_at')
-    # # puts "-------------------#{message}-----------------------"
-    # @file_progress += 15
-
-    # # puts "file_progress-----------------#{@file_progress}--------------------"
-    # message = update_file_progress(@file['id'], @file_progress)
-    # # puts "-------------------#{message}-----------------------"
-    # @file_progress
-  rescue StandardError => e
-    exception_printer(e)
-    # error_message = "MatchingProductParseService----------#{e.message.first(180)}"
-    # update_error_message_in_file(@file['id'], error_message)
-  end
-
   def send_fetch_and_process_request(user, retries, current_entries)
     @result_array << FetchMatchingProductDataService.new(user, @users, current_entries).fetch_and_process_data(5)
   rescue StandardError => e

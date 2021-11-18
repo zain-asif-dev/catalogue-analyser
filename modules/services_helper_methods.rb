@@ -2,6 +2,21 @@
 
 # Module to define methods to enhance reusability of common methods of all services
 module ServicesHelperMethods
+  def initialize_common(entries, thread_count, users = nil)
+    @entries = entries.reject { |entry| entry[:status].include?('error') }
+    return if entries.blank?
+
+    initialize_defined_variables(thread_count, entries)
+    initialize_semaphores
+    initialize_users(users) unless users.nil?
+    @_cached_records = Array.new(@entries.to_a)
+  end
+
+  def initialize_users(users)
+    @users = users
+    @user_count = @users.count
+  end
+
   def initialize_defined_variables(thread_size, result_array = [])
     @thread_size = thread_size
     @result_array = result_array
@@ -19,6 +34,41 @@ module ServicesHelperMethods
       agent = @users[user_index]
       agent.blank? ? @users.sample : agent
     end
+  end
+
+  def start
+    # if @_cached_records.blank?
+    #   @file_progress =  @file_progress + 10
+    #   #puts "file_progress-----------------#{@file_progress}--------------------"
+    #   message= update_file_progress(@file["id"], @file_progress)
+    #   #puts "-------------------#{message}-----------------------"
+    #   return @file_progress
+    # end
+
+    @threads = []
+    (0...@thread_size).each do
+      @threads << Thread.new { do_scrap }
+    end
+    @threads.each(&:join)
+    @result_array.flatten
+    # SaveDataSetForEntriesService.new({"FetchCompetitivePricingDataService" => @data_set.flatten}, @entries).map_data
+    # message = update_service_time_after_processed(@file["id"], "competitive_last_processed_at")
+    # puts "-------------------#{message}-----------------------"
+    # @file_progress =  @file_progress + 10
+    # puts "file_progress-----------------#{@file_progress}--------------------"
+    # message= update_file_progress(@file["id"], @file_progress)
+    # puts "-------------------#{message}-----------------------"
+    # @file_progress
+  rescue StandardError => e
+    exception_printer(e)
+    # error_message = "CompetitivePriceParseService----------#{e.message.first(180)}"
+    # update_error_message_in_file(@file['id'], error_message)
+    # ExceptionNotifier.notify_exception(
+    #   e,
+    #   data: { file: file, error: e.message.first(200)}
+    # )
+    # message = update_service_time_after_processed(@file['id'], 'competitive_last_processed_at')
+    # puts "-------------------#{message}-----------------------"
   end
 
   def do_scrap

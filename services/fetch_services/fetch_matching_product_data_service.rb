@@ -30,7 +30,7 @@ class FetchMatchingProductDataService
     if product_data['Error'].present?
       entry = current_entry(product_data['Id'])
       asins_data << entry_hash_required_data(entry).merge(
-        { status: "error : #{product_data.dig('Error', 'Message')}" }
+        { status: "error : FetchMatchingProductDataService : #{product_data.dig('Error', 'Message')}" }
       )
       true
     else
