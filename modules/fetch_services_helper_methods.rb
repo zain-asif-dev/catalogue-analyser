@@ -6,7 +6,7 @@ module FetchServicesHelperMethods
   include MWSRequestHelperMethods
   def initialize_common(user, users)
     @user = user
-    @users = users
+    @users = users.select { |use| use['valid'] == true }
     @client = set_client
   end
 
@@ -36,10 +36,15 @@ module FetchServicesHelperMethods
   rescue StandardError => e
     retries += 1
     puts e.message
-    update_user_and_client
     if e.message.include?('throttled') || e.message.include?('throttling')
+      update_user_and_client
+      retry
+    elsif e.message.include?('Auth')
+      @user['valid'] = nil
+      update_user_and_client
       retry
     elsif retries <= 3
+      update_user_and_client
       # update_user_mws_key_valid_status if e.message.include?('denied') ||
       # e.message.include?('Missing required parameter');
       retry

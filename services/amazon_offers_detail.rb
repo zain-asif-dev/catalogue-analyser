@@ -10,7 +10,7 @@ class AmazonOffersDetail < BaseService
   include ServicesHelperMethods
   def initialize(entries)
     super()
-    initialize_common(entries, THREAD_COUNT)
+    initialize_common(entries, 100)
     @proxy_usage = nil
   end
 

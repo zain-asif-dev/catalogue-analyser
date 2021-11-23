@@ -32,7 +32,10 @@ class GetCategoryParseService < BaseService
     retries += 1
     exception_printer(e)
     @user = available_user
-    retry if e.message.include?('throttled') || e.message.include?('throttling')
+    if e.message.include?('throttled') || e.message.include?('throttling')
+      sleep(5)
+      retry
+    end
     retry if retries <= 3
   end
 

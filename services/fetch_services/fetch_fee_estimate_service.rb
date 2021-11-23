@@ -119,14 +119,14 @@ class FetchFeeEstimateService
   end
 
   def generate_size_tier(vendorasin)
-    return product_size_tier(vendorasin[:height].to_f, vendorasin[:width].to_f, vendorasin[:length].to_f,
-                             vendorasin[:weight].to_f) if all_item_dimensions_present?(vendorasin)
+    if all_item_dimensions_present?(vendorasin)
+      return product_size_tier(vendorasin[:height].to_f, vendorasin[:width].to_f,
+                               vendorasin[:length].to_f, vendorasin[:weight].to_f)
+    end
 
     product_size_tier(
-      vendorasin[:packageheight].to_f,
-      vendorasin[:packagewidth].to_f,
-      vendorasin[:packagelength].to_f,
-      vendorasin[:packageweight].to_f
+      vendorasin[:packageheight].to_f, vendorasin[:packagewidth].to_f,
+      vendorasin[:packagelength].to_f, vendorasin[:packageweight].to_f
     )
   end
 
