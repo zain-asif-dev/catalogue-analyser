@@ -6,4 +6,3 @@ gem "peddler"
 gem 'activesupport'
 gem 'mechanize'
 gem 'axlsx'
-gem 'actionmailer'

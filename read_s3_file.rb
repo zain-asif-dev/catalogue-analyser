@@ -3,8 +3,6 @@
 require 'dotenv/load'
 require 'aws-sdk-s3'
 require 'json'
-require 'active_record'
-require 'byebug'
 require 'net/http'
 require_relative 'services/base_service'
 require_relative 'services/data_base_service'
@@ -33,7 +31,6 @@ class ReadS3File
   end
 
   def read_file
-    byebug
     key = ENV['KEY']
     # key = '85164169.json'
     puts "Key-------------------------------#{key}"
