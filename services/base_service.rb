@@ -75,39 +75,6 @@ class BaseService
     @current_user_index
   end
 
-  # def update_service_time_after_processed(file_id, key)
-  #   request, http = Requests.initialize_request('/update_service_time', 'PATCH')
-  #   body = { 'id': file_id, 'key': key }
-  #   request.body = body.to_json
-  #   rescue_exceptions do
-  #     response = http.request(request)
-  #     record = JSON.parse(response.body)
-  #     record['message']
-  #   end
-  # end
-
-  # def update_file_progress(file_id, progress)
-  #   request, http = Requests.initialize_request('/update_file_progress', 'PATCH')
-  #   body = { 'file_id': file_id, 'progress': progress }
-  #   request.body = body.to_json
-  #   rescue_exceptions do
-  #     response = http.request(request)
-  #     record = JSON.parse(response.body)
-  #     record['message']
-  #   end
-  # end
-
-  # def update_error_message_in_file(file_id, error_message)
-  #   request, http = Requests.initialize_request('/update_error_message', 'PATCH')
-  #   body = { 'id': file_id, 'error': error_message }
-  #   request.body = body.to_json
-  #   rescue_exceptions do
-  #     response = http.request(request)
-  #     record = JSON.parse(response.body)
-  #     record['message']
-  #   end
-  # end
-
   def rescue_exceptions
     yield
   rescue StandardError => e

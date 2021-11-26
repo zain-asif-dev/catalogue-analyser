@@ -37,38 +37,15 @@ module ServicesHelperMethods
   end
 
   def start
-    # if @_cached_records.blank?
-    #   @file_progress =  @file_progress + 10
-    #   #puts "file_progress-----------------#{@file_progress}--------------------"
-    #   message= update_file_progress(@file["id"], @file_progress)
-    #   #puts "-------------------#{message}-----------------------"
-    #   return @file_progress
-    # end
 
     @threads = []
     (0...@thread_size).each do
       @threads << Thread.new { do_scrap }
     end
     @threads.each(&:join)
-    @result_array.flatten
-    # SaveDataSetForEntriesService.new({"FetchCompetitivePricingDataService" => @data_set.flatten}, @entries).map_data
-    # message = update_service_time_after_processed(@file["id"], "competitive_last_processed_at")
-    # puts "-------------------#{message}-----------------------"
-    # @file_progress =  @file_progress + 10
-    # puts "file_progress-----------------#{@file_progress}--------------------"
-    # message= update_file_progress(@file["id"], @file_progress)
-    # puts "-------------------#{message}-----------------------"
-    # @file_progress
+    @result_array.flatten 
   rescue StandardError => e
     exception_printer(e)
-    # error_message = "CompetitivePriceParseService----------#{e.message.first(180)}"
-    # update_error_message_in_file(@file['id'], error_message)
-    # ExceptionNotifier.notify_exception(
-    #   e,
-    #   data: { file: file, error: e.message.first(200)}
-    # )
-    # message = update_service_time_after_processed(@file['id'], 'competitive_last_processed_at')
-    # puts "-------------------#{message}-----------------------"
   end
 
   def do_scrap

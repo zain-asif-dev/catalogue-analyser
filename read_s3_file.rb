@@ -3,90 +3,134 @@
 require 'dotenv/load'
 require 'aws-sdk-s3'
 require 'json'
-require 'mysql2'
-require 'byebug'
 require 'active_record'
+require 'byebug'
+require 'net/http'
 require_relative 'services/base_service'
 require_relative 'services/data_base_service'
 require_relative 'services/matching_product_parse_service'
 require_relative 'services/competitive_price_parse_service'
+require_relative 'services/fee_estimate_parse_service'
 require_relative 'services/lowest_price_listing_parse_service'
+require_relative 'services/get_category_parse_service'
+require_relative 'services/jungle_scout_est_sale'
+require_relative 'services/amazon_offers_detail'
+require_relative 'services/prep_fee_estimate_service'
+require_relative 'services/generate_file_output_service'
 
 # Class to run all services
 class ReadS3File
   def initialize
     @entries = []
     @data_array = []
-    @file_progress = []
     Aws.config[:s3] = {
       region: 'us-west-1',
       credentials: Aws::Credentials.new(ENV['AWS_ACCESS_KEY_ID_BUCKET'], ENV['AWS_SECRET_ACCESS_KEY_BUCKET']),
       retry_limit: 0
     }
     @s3 = Aws::S3::Client.new(region: 'us-west-1')
+    @users = fetch_all_users_clients
   end
 
   def read_file
-    # key = ENV["KEY"]
-    key = '44341463.json'
+    byebug
+    key = ENV['KEY']
+    # key = '85164169.json'
     puts "Key-------------------------------#{key}"
     resp = @s3.get_object(bucket: ENV['AWS_INPUT_BUCKET_NAME'], key: key)
     @entries = JSON.parse(resp.body.read)
+    @entries = @entries.first(100) unless ENV['BASE_URL'].include?('sales.support')
     process_entries(@entries)
     return if @entries.blank?
 
+    start_t = Time.now
     puts 'File Read!!!!!!!!!!!!'
     puts "-------------------------Fetch all user's client information-------------------------------------------"
     @users = fetch_all_users_clients
     start_time = Time.now
     @data_array = MatchingProductParseService.new(@entries, @users).start
     end_time = Time.now
+    update_file_status(12.5)
     puts "MatchingProductParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     start_time = Time.now
     CompetitivePriceParseService.new(@data_array, @users).start
     end_time = Time.now
+    update_file_status(25)
     puts "CompetitivePriceParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     start_time = Time.now
-    @result_array = LowestPriceListingParseService.new(@entries, @users).start
+    LowestPriceListingParseService.new(@data_array, @users).start
     end_time = Time.now
+    update_file_status(37.5)
     puts "LowestPriceListingParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     start_time = Time.now
-    @file_progress = FeeEstimateParseService.new(@file_progress, @entries, @users).start
+    FeeEstimateParseService.new(@data_array, @users).start
     end_time = Time.now
+    update_file_status(50)
     puts "FeeEstimateParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
+    start_time = Time.now
+    GetCategoryParseService.new(@data_array, @users).start
+    end_time = Time.now
+    update_file_status(62.5)
+    puts "GetCategoryParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     # start_time = Time.now
-    # @file_progress = GetCategoryParseService.new(@file_progress, @entries, @users).start
-    # end_time = Time.now
-    # puts "GetCategoryParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
-    # start_time = Time.now
-    # @file_progress = JungleScoutEstSale.new(@file_progress, @entries).start
+    # JungleScoutEstSale.new(@data_array).start
     # end_time = Time.now
     # puts "JungleScoutEstSale StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
-    # start_time = Time.now
-    # @file_progress = AmazonOffersDetail.new(@file_progress, @entries).start
-    # end_time = Time.now
-    # puts "AmazonOffersDetail StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
-    # start_time = Time.now
-    # @file_progress = PrepFeeEstimateService.new(@file_progress, @entries, @users).start
-    # end_time = Time.now
-    # puts "PrepFeeEstimateService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
-    # start_time = Time.now
-    # FinalizeFileUploadsService.new(@file_progress, @entries).start
-    # end_time = Time.now
-    # puts "FinalizeFileUploadsService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
+    start_time = Time.now
+    AmazonOffersDetail.new(@data_array).start
+    end_time = Time.now
+    update_file_status(75)
+    puts "AmazonOffersDetail StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
+    start_time = Time.now
+    PrepFeeEstimateService.new(@data_array, @users).start
+    end_time = Time.now
+    update_file_status(87.5)
+    puts "PrepFeeEstimateService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
+    start_time = Time.now
+    file_name, file_url = GenerateFileOutputService.new(@data_array.reject { |e| e[:status].include?('error') }, []).generate_catalog_output
+    end_time = Time.now
+    puts "PrepFeeEstimateService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
+    end_t = Time.now
+    puts "Total  StartTime: #{start_t}, EndTime: #{end_t}, Duration: #{((end_t - start_t) / 60).round(2)} mins"
+    directory_path = 'output_files'
+    FileUtils.mkdir_p directory_path
+    output_file_url = "#{directory_path}/#{key}"
+    File.write(output_file_url, @data_array.to_json)
+    s3_object = Aws::S3::Resource.new.bucket(ENV['AWS_OUTPUT_BUCKET_NAME']).put_object({ key: key, body: open(output_file_url, 'rb'), acl: 'public-read'})
+    # puts "-----------------------------#{s3_object.public_url}"
+    update_file_status(100, file_name, file_url)
+  end
+
+  def update_file_status(progress, file_name = nil, file_url = nil)
+    http, request = generate_request
+    body = { 'progress': progress, 'output_file_name': file_name, 'output_file_url': file_url }
+    request.body = body.to_json
+    rescue_exceptions do
+      response = http.request(request)
+      record = JSON.parse(response.body)
+      record['message']
+    end
+  end
+
+  def generate_request
+    uri = URI.parse("#{ENV['BASE_URL']}/api/v3/amazon_files/#{ENV['FILE_ID']}/update_file_status")
+    request = Net::HTTP::Put.new(uri.request_uri)
+    request['Content-Type'] = 'application/json'
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true if ENV['BASE_URL'].include?('sales.support')
+    [http, request]
+  end
+
+  def rescue_exceptions
+    yield
+  rescue StandardError => e
+    puts "Error: #{e}"
+    false
   end
 
   def fetch_all_users_clients
-    db = DataBaseService.new(
-      ENV['DB_USERNAME'],
-      ENV['DB_PASSWORD'],
-      'fba_support_development_collation',
-      ENV['DB_HOST']
-    )
-    db.execute_sql(
-      'SELECT `users`.id as user_id, `users`.seller_id as merchant_id, `users`.mws_market_place_id as
-      mws_market_place_id, `users`.mws_access_token as auth_token FROM `users` WHERE `users`.`mws_key_valid` = 1'
-    )
+    response = @s3.get_object(bucket: ENV['AWS_AMAZON_CREDENTIALS_BUCKET'], key: 'amazon_user_credentials.json')
+    @users = JSON.parse(response.body.read)
   end
 
   def process_entries(entries)

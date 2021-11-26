@@ -50,8 +50,6 @@ class GenerateFileOutputService
                            'ESTIMATED amazon bundle quantity', 'ITEM NUMBER', 'Supplier Product Description', 'BuyBox Price', 'Net Profit $USD']
     # yellow_header_indexes = [4, 10, 11, 12, 16]
     yellow_header_indexes = ['Bundle Cost', 'Amazon Product Description', 'Estimated Sales Monthly', 'Sales Rank', '# Total Offers']
-    output_file_name = "#{Time.now.to_datetime.strftime('%M%s%d%m%Y')}.xlsx"
-    output_file_url = "#{directory_path}/#{output_file_name}"
 
     xlsx_package = Axlsx::Package.new
     xlsx_package.use_autowidth = true
@@ -101,9 +99,9 @@ class GenerateFileOutputService
                             end
       end
 
-      if @vendor_asins.flatten.count == 0
+      if @vendor_asins.flatten.count.zero?
         puts '--------------There  is an issue with the File or the Vendor-------------------'
-        return
+        return -1
       end
 
       @vendor_asins.flatten.each_with_index do |item, index|
@@ -128,53 +126,53 @@ class GenerateFileOutputService
         next if item.blank?
 
         record = {
-          'ASIN': item['asin'],
-          'AMAZON UPC': item['upc'],
-          'Cost':  item['cost_price'].to_f,
+          'ASIN': item[:asin],
+          'AMAZON UPC': item[:upc],
+          'Cost': item[:cost_price].to_f,
           'Bundle Quantity': 1,
           'Bundle Cost': bundle_cost_formula,
-          'Case Quantity': (item.dig('case_quantity') || 1),
+          'Case Quantity': (item[:case_quantity] || 1),
           'ESTIMATED amazon bundle cost': amazon_pack_cost_formula,
-          'ESTIMATED amazon bundle quantity': item['packagequantity'].to_i,
-          'ITEM NUMBER': item['sku'],
-          'Supplier Product Description': remove_special_characters(item['item_description']),
+          'ESTIMATED amazon bundle quantity': item[:packagequantity].to_i,
+          'ITEM NUMBER': item[:sku],
+          'Supplier Product Description': remove_special_characters(item[:item_description]),
           'Amazon Product Description': remove_special_characters(title(item)),
-          'Estimated Sales Monthly': item['salespermonth'] || 0,
-          'Sales Rank': item['salesrank'],
+          'Estimated Sales Monthly': item[:salespermonth] || 0,
+          'Sales Rank': item[:salesrank],
           'BuyBox Price': buyboxprice(item),
           'Net Profit $USD': formula_string,
           'ROI': roi_formula,
-          '# Total Offers': item['totaloffers'],
-          'If Amazon is Selling': item['amazon_selling'] ? 'AMZ' : '-',
-          'FBA Fee': item['fba_fee'],
-          'Reference Offer': item['referenceoffer'],
-          'Amazon Offers': item['fbaoffers'],
+          '# Total Offers': item[:totaloffers],
+          'If Amazon is Selling': item[:amazon_selling] ? 'AMZ' : '-',
+          'FBA Fee': item[:fba_fee],
+          'Reference Offer': item[:referenceoffer],
+          'Amazon Offers': item[:fbaoffers],
           'Storage Fee': current_storage_fee(item),
           'Complete FBA Fee': complete_fba_fee(item),
-          'Variable Closing Fee': item['variableclosingfee'],
-          'Comm. Pct': "#{item['commissionpct'].presence || 15}%",
+          'Variable Closing Fee': item[:variableclosingfee],
           'Comm. Fee': commission_fee_formula,
-          'Inbound Shipping': item['inbound_fee'], # Not found
+          'Comm. Pct': "#{item[:commissionpct].presence || 15}%",
+          'Inbound Shipping': ENV['inbound_fee'], # Not found
           'Prep Fee': calculate_prep_fee(item),
-          'FBA Sellers': item['fbaoffers'],
-          '# FBM Offers': item['fbmoffers'],
-          'Lowest FBA Offer': item['lowestfbaoffer'],
-          'Lowest MFN Offer': item['lowestfbmoffer'],
+          'FBA Sellers': item[:fbaoffers],
+          '# FBM Offers': item[:fbmoffers],
+          'Lowest FBA Offer': item[:lowestfbaoffer],
+          'Lowest MFN Offer': item[:lowestfbmoffer],
           'IsBuybox FBA': buy_box_seller(item),
-          'Product Type': item['product_type'] || '',
-          'Weight': item['weight'],
-          'Length': item['length'],
-          'Width': item['width'],
-          'Height': item['height'],
-          'Package Weight': item['packageweight'],
-          'Package Length': item['packagelength'],
-          'Package Width': item['packagewidth'],
-          'Package Height': item['packageheight'],
-          'SIZE TIER': item['size_tier'],
-          'Brand': item['brand']
+          'Product Type': item[:product_type] || '',
+          'Weight': item[:weight],
+          'Length': item[:length],
+          'Width': item[:width],
+          'Height': item[:height],
+          'Package Weight': item[:packageweight],
+          'Package Length': item[:packagelength],
+          'Package Width': item[:packagewidth],
+          'Package Height': item[:packageheight],
+          'SIZE TIER': item[:size_tier],
+          'Brand': item[:brand]
         }
 
-        requried_to_remove = @columns_not_required.to_s.split(',')&.map &:to_sym
+        requried_to_remove = @columns_not_required.to_s.split(',')&.map(&:to_sym)
         row = sheet.add_row record.except(*requried_to_remove).values
 
         if item_profit.zero?
@@ -195,116 +193,94 @@ class GenerateFileOutputService
             elsif percentage_cells.include?(cell_index)
               cell.style = item_profit.negative? ? red_cell_with_percentage : green_cell_with_percentage
             else
-              cell.style = red_cell_style if (item_profit < 0 and red_text_cells.include?(cell_index))
+              cell.style = red_cell_style if item_profit.negative? && red_text_cells.include?(cell_index)
             end
           end
         end
       end
     end
 
-    File.write(output_file_url, xlsx_package.to_stream.read)
-    s3_object = Aws::S3::Resource.new.bucket(ENV['AWS_OUTPUT_BUCKET_NAME']).put_object({ key: generate_file_name, body: open(output_file_url, 'rb'), acl: 'public-read'})
+    s3_object = Aws::S3::Resource.new.bucket(ENV['AWS_OUTPUT_BUCKET_NAME']).put_object({ key: generate_file_name, body: xlsx_package.to_stream.read, acl: 'public-read'})
     puts "-----------------------------#{s3_object.public_url}"
-    # message = update_output_url_in_file(output_file_name, s3_object.public_url)
-    # puts "-----------------#{message}------------------------------"
-    # @file_progress =  @file_progress + 15
-    # puts "file_progress-----------------#{@file_progress}--------------------"
-    # message= update_file_progress_status(@file_upload["id"], @file_progress)
-    # puts "-------------------#{message}-----------------------"
+
+    [output_file_name, s3_object.public_url]
   end
 
   def title(vendoritem)
-    title = vendoritem['name']
+    title = vendoritem[:name]
     title.presence || 'Missing Name'
   end
 
   def generate_file_name
-    "#{Time.now.to_datetime.strftime('%M%s%d%m%Y')}.xlsx"
+    "#{ENV['FILE_NAME'].gsub('.csv', '')}-#{ENV['FILE_ID']}-#{Time.now.to_datetime.strftime('%d%m%Y')}.xlsx"
   end
 
   def buy_box_seller(vendorasin)
-    vendorasin['isbuyboxfba'] ? 'FBA' : 'FBM'
+    vendorasin[:isbuyboxfba] ? 'FBA' : 'FBM'
   end
 
   def remove_special_characters(str)
     str.to_s.gsub(/[^0-9A-Za-z]/, ' ')[0...200]
   end
 
-  def brand_name(vendoritem)
-    return '' if vendoritem['brand'].nil?
-    return '' if vendoritem['brand']['name'].nil?
-
-    vendoritem['brand']['name']
-  end
-
   def excel_profit(vendoritem)
     (
       buyboxprice(vendoritem).to_f -
-      vendoritem['cost_price'].to_f *
-      vendoritem['packcount'].to_i -
-      vendoritem['fba_fee'].to_f -
-      vendoritem['commissiionfee'].to_f
+      vendoritem[:cost_price].to_f *
+      vendoritem[:packcount].to_i -
+      vendoritem[:fba_fee].to_f -
+      vendoritem[:commissiionfee].to_f
     ).to_f.round(2)
   end
 
   def calculate_prep_fee(vendorasin)
     fee = 0.0
-    unless vendorasin['prep_instructions'].nil?
-      if vendorasin['prep_instructions'].downcase.include? 'Labeling'.downcase
-        fee += LABELING_CHARGES
-      end
-      if vendorasin['prep_instructions'].downcase.include? 'Bubble'.downcase
-        fee += BUBBLE_CHARGES
-      end
-      if vendorasin['prep_instructions'].downcase.include? 'Polybag'.downcase
-        fee += POLYBAG_CHARGES
-      end
-      if vendorasin['prep_instructions'].downcase.include? 'Box'.downcase
-        fee += BOX_CHARGES
-      end
-      if vendorasin['prep_instructions'].downcase.include? 'Taping'.downcase
-        fee += TAPING_CHARGES
-      end
-      if vendorasin['packagequantity'] > 1
-        fee += QUANTITY_IN_CASE_CHARGES
-      end
-    end
+    return fee if vendorasin[:prep_instructions].nil?
+
+    fee += LABELING_CHARGES if vendorasin[:prep_instructions].downcase.include?('Labeling'.downcase)
+    fee += BUBBLE_CHARGES if vendorasin[:prep_instructions].downcase.include?('Bubble'.downcase)
+    fee += POLYBAG_CHARGES if vendorasin[:prep_instructions].downcase.include?('Polybag'.downcase)
+    fee += BOX_CHARGES if vendorasin[:prep_instructions].downcase.include?('Box'.downcase)
+    fee += TAPING_CHARGES if vendorasin[:prep_instructions].downcase.include?('Taping'.downcase)
+    fee += QUANTITY_IN_CASE_CHARGES if vendorasin[:packagequantity] > 1
     fee
   end
 
   def buyboxprice(vendoritem)
-    return vendoritem['buyboxprice'].to_f if vendoritem['buyboxprice'].to_f > 0.0
+    return vendoritem[:buyboxprice].to_f if vendoritem[:buyboxprice].to_f > 0.0
 
     0
   end
 
   def complete_fba_fee(vendorasin)
-    vendorasin['fba_fee'].to_f + current_storage_fee(vendorasin).to_f
+    vendorasin[:fba_fee].to_f + current_storage_fee(vendorasin).to_f
   end
 
   def current_storage_fee(vendorasin)
-    return 0 if vendorasin['size_tier'].nil?
+    return 0 if vendorasin[:size_tier].nil?
 
     current_month_index = Date.today.strftime('%m').to_i
     if current_month_index.between?(1, 9)
-      fee = vendorasin['size_tier'].downcase.include?('standard') ? (0.69 * cubic_feet(vendorasin)) : (0.48 * cubic_feet(vendorasin))
+      fee = vendorasin[:size_tier].downcase.include?('standard') ? (0.69 * cubic_feet(vendorasin)) : (0.48 * cubic_feet(vendorasin))
     else
-      fee = vendorasin['size_tier'].downcase.include?('standard') ? (2.40 * cubic_feet(vendorasin)) : (1.20 * cubic_feet(vendorasin))
+      fee = vendorasin[:size_tier].downcase.include?('standard') ? (2.40 * cubic_feet(vendorasin)) : (1.20 * cubic_feet(vendorasin))
     end
     fee.round(8)
   end
 
   def all_dimensions_present?(vendorasin)
     (
-      !vendorasin['packageheight'].blank? && !vendorasin['packagewidth'].blank? &&
-      !vendorasin['packagelength'].blank? && !vendorasin['packageweight'].blank?
+      !vendorasin[:packageheight].blank? && !vendorasin[:packagewidth].blank? &&
+      !vendorasin[:packagelength].blank? && !vendorasin[:packageweight].blank?
     )
   end
 
   def cubic_feet(vendorasin)
     return 0 unless all_dimensions_present?(vendorasin)
 
-    ((vendorasin['packagelength'].to_f * vendorasin['packagewidth'].to_f * vendorasin['packageheight'].to_f) / 1728).to_f.round(4)
+    (
+      (vendorasin[:packagelength].to_f * vendorasin[:packagewidth].to_f * vendorasin[:packageheight].to_f) / 1728
+    ).to_f.round(4)
   end
 
   def rescue_exceptions

@@ -108,7 +108,6 @@ class FetchFeeEstimateService
 
   def generate_vendorasin_hash
     {
-      id: nil,
       asin: '',
       commissionpct: 0,
       commissiionfee: 0.0,

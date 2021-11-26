@@ -6,7 +6,7 @@ module FetchServicesHelperMethods
   include MWSRequestHelperMethods
   def initialize_common(user, users)
     @user = user
-    @users = users.select { |use| use['valid'] == true }
+    @users = users
     @client = set_client
   end
 
@@ -40,7 +40,6 @@ module FetchServicesHelperMethods
       update_user_and_client
       retry
     elsif e.message.include?('Auth')
-      @user['valid'] = nil
       update_user_and_client
       retry
     elsif retries <= 3
