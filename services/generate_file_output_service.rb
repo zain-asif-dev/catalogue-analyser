@@ -121,7 +121,6 @@ class GenerateFileOutputService
         bundle_cost_formula = "=#{cost}#{row_index_for_formula}*#{bundle_quantity}#{row_index_for_formula}"
         amazon_pack_cost_formula = "=#{cost}#{row_index_for_formula}*#{estimated_amz_bundle_quantity}#{row_index_for_formula}"
         commission_fee_formula = "=(#{commission_pct}#{row_index_for_formula}*#{bbp}#{row_index_for_formula})"
-
         item_profit = excel_profit(item)
         next if item.blank?
 
@@ -150,9 +149,9 @@ class GenerateFileOutputService
           'Storage Fee': current_storage_fee(item),
           'Complete FBA Fee': complete_fba_fee(item),
           'Variable Closing Fee': item[:variableclosingfee],
-          'Comm. Fee': commission_fee_formula,
           'Comm. Pct': "#{item[:commissionpct].presence || 15}%",
-          'Inbound Shipping': ENV['inbound_fee'], # Not found
+          'Comm. Fee': commission_fee_formula,
+          'Inbound Shipping': ENV['inbound_fee'],
           'Prep Fee': calculate_prep_fee(item),
           'FBA Sellers': item[:fbaoffers],
           '# FBM Offers': item[:fbmoffers],
@@ -200,7 +199,8 @@ class GenerateFileOutputService
       end
     end
 
-    s3_object = Aws::S3::Resource.new.bucket(ENV['AWS_OUTPUT_BUCKET_NAME']).put_object({ key: generate_file_name, body: xlsx_package.to_stream.read, acl: 'public-read'})
+    output_file_name = generate_file_name
+    s3_object = Aws::S3::Resource.new.bucket(ENV['AWS_OUTPUT_BUCKET_NAME']).put_object({ key: output_file_name, body: xlsx_package.to_stream.read, acl: 'public-read'})
     puts "-----------------------------#{s3_object.public_url}"
 
     [output_file_name, s3_object.public_url]
