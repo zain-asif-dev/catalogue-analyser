@@ -20,9 +20,9 @@ class GenerateFileOutputService
                'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR',
                'AS', 'AT', 'AU', 'AV', 'AW', 'AX', 'AY', 'AZ']
 
-  def initialize(vendor_asins, columns_not_required)
+  def initialize(vendor_asins)
     @vendor_asins = vendor_asins
-    @columns_not_required = columns_not_required
+    @columns_not_required = ENV['columns_not_required']
   end
 
   def generate_catalog_output

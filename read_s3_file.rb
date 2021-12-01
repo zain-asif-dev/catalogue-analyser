@@ -84,7 +84,7 @@ class ReadS3File
     update_file_status(87.5)
     puts "PrepFeeEstimateService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     start_time = Time.now
-    file_name, file_url = GenerateFileOutputService.new(@data_array.reject { |e| e[:status].include?('error') }, []).generate_catalog_output
+    file_name, file_url = GenerateFileOutputService.new(@data_array.reject { |e| e[:status].include?('error') }).generate_catalog_output
     end_time = Time.now
     puts "PrepFeeEstimateService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     end_t = Time.now
