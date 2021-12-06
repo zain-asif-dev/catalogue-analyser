@@ -28,8 +28,7 @@ class BaseService
   end
 
   def refresh_agent(agent)
-    agent.cookie_jar.clear!
-    agent.history.clear
+    agent.reset
     agent.user_agent = UserAgent.random
   end
 
@@ -37,7 +36,7 @@ class BaseService
     tries = 0
     max_tries = 10
     page = nil?
-
+    agent.verify_mode = OpenSSL::SSL::VERIFY_NONE if uri.include?('https')
     begin
       page = params.nil? ? agent.get(uri, [], nil, headers) : agent.post(uri, params, headers)
       while (page.body.include? 're not a robot') && (tries < max_tries)
@@ -48,7 +47,7 @@ class BaseService
         tries += 1
       end
     rescue Mechanize::ResponseCodeError => e
-      # puts  "Response error: HTTP #{e.response_code} from #{uri}, proxy: #{agent.proxy_addr}"
+      puts "Response error: HTTP #{e.response_code} from #{uri}, proxy: #{agent.proxy_addr}"
       refresh_agent(agent)
       tries += 1
       if (tries < max_tries) && (e.response_code.to_s != '404')
@@ -57,7 +56,7 @@ class BaseService
         retry
       end
     rescue StandardError => e
-      # puts  "Message: #{e.message} from #{uri}, proxy: #{agent.proxy_addr}"
+      puts "Message: #{e.message} from #{uri}, proxy: #{agent.proxy_addr}"
       refresh_agent(agent)
 
       tries += 1

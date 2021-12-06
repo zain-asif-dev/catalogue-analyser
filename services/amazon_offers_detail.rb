@@ -11,7 +11,7 @@ class AmazonOffersDetail < BaseService
   def initialize(entries)
     super()
     initialize_common(entries, 100)
-    @proxy_usage = nil
+    @proxy_usage = true
   end
 
   def start
@@ -43,22 +43,10 @@ class AmazonOffersDetail < BaseService
 
   def process_query(agent, asin)
     url = BASE_URL + asin
-    offers_page = send_request(agent, url, nil, headers_hash)
-    return { asin: asin, amazon_selling: !offers_page.xpath("//img[@alt='Amazon.com']").empty? } if offers_page.present?
+    offers_page = send_request(agent, url)
+    return { asin: asin, amazon_selling: !offers_page.xpath("//img[@alt='amazon.com']").empty? } if offers_page.present?
 
     { asin: asin, status: "processing : AmazonOfferDeail : No data found from url! URL is #{url}" }
-  end
-
-  def headers_hash
-    {
-      'method' => 'GET',
-      'scheme' => 'https',
-      'accept' => 'application/json, text/javascript, */*; q=0.01',
-      'accept-encoding' => 'gzip, deflate, br',
-      'accept-language' => 'en-GB,en;q=0.9',
-      'sec-fetch-mode' => 'cors',
-      'sec-fetch-site' => 'same-site'
-    }
   end
 
   def remaining_data
