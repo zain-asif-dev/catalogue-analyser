@@ -11,7 +11,7 @@ class AmazonOffersDetail < BaseService
   def initialize(entries)
     super()
     initialize_common(entries, 100)
-    @proxy_usage = true
+    @proxy_usage = nil
   end
 
   def start
@@ -44,7 +44,7 @@ class AmazonOffersDetail < BaseService
   def process_query(agent, asin)
     url = BASE_URL + asin
     offers_page = send_request(agent, url)
-    return { asin: asin, amazon_selling: !offers_page.xpath("//img[@alt='amazon.com']").empty? } if offers_page.present?
+    return { asin: asin, amazon_selling: !offers_page.xpath("//img[@alt='amazon.com']").empty? } if offers_page.present? && offers_page
 
     { asin: asin, status: "processing : AmazonOfferDeail : No data found from url! URL is #{url}" }
   end

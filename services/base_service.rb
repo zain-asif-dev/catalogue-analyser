@@ -34,7 +34,7 @@ class BaseService
 
   def send_request(agent, uri, params = nil, headers = {})
     tries = 0
-    max_tries = 10
+    max_tries = 7
     page = nil?
     agent.verify_mode = OpenSSL::SSL::VERIFY_NONE if uri.include?('https')
     begin
