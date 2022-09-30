@@ -32,7 +32,7 @@ class FeeEstimateParseService < BaseService
       puts "Remaining: FOR FeeEstimateParseService #{@_cached_records.count}"
       return false if @_cached_records.blank?
 
-      return @_cached_records.shift(40)
+      return @_cached_records.shift(20)
     end
   end
 end

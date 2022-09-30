@@ -95,7 +95,7 @@ class ReadS3File
     end_t = Time.now
     puts "Total  StartTime: #{start_t}, EndTime: #{end_t}, Duration: #{((end_t - start_t) / 60).round(2)} mins"
     Aws::S3::Resource.new.bucket(ENV['AWS_OUTPUT_BUCKET_NAME']).put_object({ key: key, body: @data_array.to_json, acl: 'public-read'})
-    puts "-----------------------------#{s3_object.public_url}"
+    # puts "-----------------------------#{s3_object.public_url}"
     update_file_status(100, file_name, file_url)
   end
 

@@ -102,20 +102,20 @@ class FetchMatchingProductDataService
   def add_package_dimensions(asin_data)
     data = map_dimensions(asin_data)
     {
-      packageweight: data[:height],
-      packageheight: data[:width],
-      packagelength: data[:length],
-      packagewidth: data[:weight]
+      packageweight: data[:height].round(2),
+      packageheight: data[:width].round(2),
+      packagelength: data[:length].round(2),
+      packagewidth: data[:weight].round(2)
     }
   end
 
   def add_item_dimensions(asin_data)
     data = map_dimensions(asin_data)
     {
-      height: data[:height],
-      width: data[:width],
-      length: data[:length],
-      weight: data[:weight]
+      height: data[:height].round(2),
+      width: data[:width].round(2),
+      length: data[:length].round(2),
+      weight: data[:weight].round(2)
     }
   end
 

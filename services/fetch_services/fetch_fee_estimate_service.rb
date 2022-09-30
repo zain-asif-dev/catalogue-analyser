@@ -18,8 +18,6 @@ class FetchFeeEstimateService
     vendor_asins = []
     data_set = fetch_data_from_mws
     data_set.each do |data|
-      next unless data['Status'] == 'Success'
-
       vendor_asins << parse_data(data)
     end
     vendor_asins.flatten
@@ -28,15 +26,18 @@ class FetchFeeEstimateService
   def fetch_data_from_mws
     response_arr = []
     retries = 0
-    # retry_mws_exception(retries) do
+    retry_mws_exception(retries) do
       fetch_data(response_arr, generate_fee_params)
-    # end
+    end
     response_arr.flatten
   end
 
   def fetch_data(response_arr, fee_params)
     unparsed_response = fetch_fee_estimate(fee_params)
-    return if unparsed_response.is_a?(Array)
+    if unparsed_response.is_a?(Array)
+      puts unparsed_response
+      return
+    end
 
     response = JSON.parse(unparsed_response.body) 
     check_response(response, response_arr)
@@ -46,6 +47,7 @@ class FetchFeeEstimateService
     fee_params = []
     @list.each_with_index do |vendor_asin, index|
       next if vendor_asin.nil?
+      next if buyboxprice(vendor_asin) == 0
 
       fee_params << generate_fee_param_hash(vendor_asin, index)
     end
@@ -78,7 +80,7 @@ class FetchFeeEstimateService
     vendorasin_hash = generate_vendorasin_hash
 
     vendorasin_hash[:asin] = fees_estimate_identifier
-    vendor_asin = @list.find { |vendor| vendor[:asin] == vendorasin_hash[:asin] }
+    vendor_asin = @list.find { |vendor| vendor[:asin] == fees_estimate_identifier }
 
     size_tier = generate_size_tier(vendor_asin)
     vendorasin_hash[:size_tier] = size_tier
