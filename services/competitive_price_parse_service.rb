@@ -19,18 +19,14 @@ class CompetitivePriceParseService < BaseService
   def send_fetch_and_process_request(user, retries, current_entries)
     merge_same_asin_hash(
       @result_array,
-      FetchCompetitivePricingDataService.new(user, @users, current_entries).fetch_and_process_data(10).flatten
+      FetchCompetitivePricingDataService.new(user, @users, current_entries).fetch_and_process_data(20).flatten
     )
-  rescue StandardError => e
-    exception_printer(e)
-    retries += 1
-    retry if retries <= 3
   end
 
   def remaining_data
     @search_key_semaphore.synchronize do
       puts "Remaining: FetchCompetitivePricingDataService #{@_cached_records.count}"
-      @_cached_records.blank? ? false : @_cached_records.shift(5)
+      @_cached_records.blank? ? false : @_cached_records.shift(20)
     end
   end
 end

@@ -19,7 +19,7 @@ class LowestPriceListingParseService < BaseService
   def send_fetch_and_process_request(user, retries, current_entries)
     merge_same_asin_hash(
       @result_array,
-      FetchLowestPriceListingService.new(user, @users, current_entries).fetch_and_process_data(10).flatten
+      FetchLowestPriceListingService.new(user, @users, current_entries).fetch_and_process_data(20).flatten
     )
   rescue StandardError => e
     exception_printer(e)
@@ -32,7 +32,7 @@ class LowestPriceListingParseService < BaseService
       puts "Remaining: FOR LowestPriceListingParseService #{@_cached_records.count}"
       return false if @_cached_records.blank?
 
-      return @_cached_records.shift(5)
+      return @_cached_records.shift(20)
     end
   end
 end

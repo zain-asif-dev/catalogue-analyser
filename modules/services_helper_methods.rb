@@ -3,7 +3,7 @@
 # Module to define methods to enhance reusability of common methods of all services
 module ServicesHelperMethods
   def initialize_common(entries, thread_count, users = nil)
-    @entries = entries.reject { |entry| entry[:status].include?('error') }
+    @entries = entries.reject { |entry| entry[:status]&.include?('error') }
     return if entries.blank?
 
     initialize_defined_variables(thread_count, entries)
@@ -37,13 +37,12 @@ module ServicesHelperMethods
   end
 
   def start
-
     @threads = []
     (0...@thread_size).each do
       @threads << Thread.new { do_scrap }
     end
     @threads.each(&:join)
-    @result_array.flatten 
+    @result_array.flatten
   rescue StandardError => e
     exception_printer(e)
   end

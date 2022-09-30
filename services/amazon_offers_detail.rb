@@ -11,7 +11,7 @@ class AmazonOffersDetail < BaseService
   def initialize(entries)
     super()
     initialize_common(entries, 100)
-    @proxy_usage = nil
+    @proxy_usage = true
   end
 
   def start

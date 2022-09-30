@@ -14,15 +14,22 @@ class FetchCompetitivePricingDataService
   end
 
   def parse_data(competitive_data_set)
-    competitive_data_error(competive_data_set) if competitive_data_set['Error'].present?
-    asin = competitive_data_set['ASIN'].to_s
-    product = competitive_data_set['Product']
-    vendor_asin_hash(asin, product) unless product.dig('CompetitivePricing', 'CompetitivePrices').nil?
+    asin_arr = []
+    competitive_data_error(competitive_data_set) if competitive_data_set['errors'].present?
+    competitive_data_set.dig('payload').each do |competitive_data|
+      next if competitive_data.dig('status') == 'ClientError'
+
+      asin = competitive_data['ASIN'].to_s
+      product = competitive_data['Product']
+      next if product.dig('CompetitivePricing', 'CompetitivePrices').blank?
+      asin_arr << vendor_asin_hash(asin, product)
+    end
+    asin_arr.flatten
   end
 
   def vendor_asin_hash(asin, product)
     vendor_asin = {}
-    competitive_price = [product.dig('CompetitivePricing', 'CompetitivePrices', 'CompetitivePrice')].flatten
+    competitive_price = product.dig('CompetitivePricing', 'CompetitivePrices')
     is_buybox_fba = (competitive_price.select { |item| item['CompetitivePriceId'] == '1' }).first.present?
     reference_offer = reference_offer(competitive_price, is_buybox_fba)
     reference_offer_type = reference_offer_type(reference_offer)
@@ -68,11 +75,12 @@ class FetchCompetitivePricingDataService
 
   def competitive_data_error(competitive_data_set)
     entry = @entries.find { |item| item[:asin] == competitive_data_set['ASIN'] }
-    entry[:status] = "error : FetchCompetitivePricingDataService : #{competitive_data_set.dig('Error', 'Message')}"
+    entry[:status] = "code: #{competitive_data_set.dig('errors', 0, 'code')}, error : FetchCompetitivePricingDataService : #{competitive_data_set.dig('errors', 0, 'message')}"
   end
 
   def fetch_data(response_arr, list_item)
-    response = @client.get_competitive_pricing_for_asin(ENV['MARKETPLACE_ID'], list_item)
+    response = JSON.parse(competitive_pricing_for(list_item).read_body)
+    # @client.get_competitive_pricing_for_asin(ENV['MARKETPLACE_ID'], list_item)
     check_response(response, response_arr)
   end
 end

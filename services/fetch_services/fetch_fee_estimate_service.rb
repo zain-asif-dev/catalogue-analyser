@@ -18,22 +18,27 @@ class FetchFeeEstimateService
     vendor_asins = []
     data_set = fetch_data_from_mws
     data_set.each do |data|
+      next unless data['Status'] == 'Success'
+
       vendor_asins << parse_data(data)
     end
-    vendor_asins
+    vendor_asins.flatten
   end
 
   def fetch_data_from_mws
     response_arr = []
     retries = 0
-    retry_mws_exception(retries) do
+    # retry_mws_exception(retries) do
       fetch_data(response_arr, generate_fee_params)
-    end
+    # end
     response_arr.flatten
   end
 
   def fetch_data(response_arr, fee_params)
-    response = @client.get_my_fees_estimate(fee_params)
+    unparsed_response = fetch_fee_estimate(fee_params)
+    return if unparsed_response.is_a?(Array)
+
+    response = JSON.parse(unparsed_response.body) 
     check_response(response, response_arr)
   end
 
@@ -49,14 +54,14 @@ class FetchFeeEstimateService
 
   def generate_fee_param_hash(vendor_asin, index)
     {
-      marketplace_id: ENV['MARKETPLACE_ID'],
-      id_type: 'ASIN', id_value: vendor_asin[:asin], identifier: "request#{index}",
-      is_amazon_fulfilled: (all_dimensions_present?(vendor_asin) && !all_dimensions_zero?(vendor_asin)),
-      price_to_estimate_fees: {
-        listing_price: { currency_code: 'USD', amount: buyboxprice(vendor_asin) },
-        shipping: { currency_code: 'USD', amount: 0 },
-        points: { points_number: 0 }
-      }
+      'IdType': 'ASIN', 'IdValue': vendor_asin[:asin],
+      'FeesEstimateRequest': {
+        'MarketplaceId': ENV['MARKETPLACE_ID'],
+        'IsAmazonFulfilled': (all_dimensions_present?(vendor_asin) && !all_dimensions_zero?(vendor_asin)),
+        'PriceToEstimateFees': { 'ListingPrice': { 'CurrencyCode': 'USD', 'Amount': buyboxprice(vendor_asin) }, 
+                                 'Shipping': { 'CurrencyCode': 'USD', 'Amount': 0 },
+                                 'Points': { 'PointsNumber': 0 } },
+        'Identifier': "request#{index}" }
     }
   end
 
@@ -66,44 +71,34 @@ class FetchFeeEstimateService
   end
 
   def parse_data(fee_estimate_array_hash)
-    vendorasins_records = []
-    fee_estimate_array = [fee_estimate_array_hash.dig('FeesEstimateResultList', 'FeesEstimateResult')].flatten
-    return if fee_estimate_array.nil?
+    fee_details = fee_estimate_array_hash.dig('FeesEstimate', 'FeeDetailList')
+    fees_estimate_identifier = fee_estimate_array_hash.dig('FeesEstimateIdentifier', 'IdValue')
+    return if fee_details.nil? || fees_estimate_identifier.nil?
 
-    fee_estimate_array.each do |fee_estimate|
-      next if fee_estimate.instance_of?(String)
+    vendorasin_hash = generate_vendorasin_hash
 
-      if fee_estimate['Error'].present?
-        fetch_fee_error(vendorasins_records, fee_estimate)
-        next
+    vendorasin_hash[:asin] = fees_estimate_identifier
+    vendor_asin = @list.find { |vendor| vendor[:asin] == vendorasin_hash[:asin] }
+
+    size_tier = generate_size_tier(vendor_asin)
+    vendorasin_hash[:size_tier] = size_tier
+    fee_details.each do |fee_detail|
+      case fee_detail['FeeType']
+      when 'ReferralFee'
+        commissionpct ||= (fee_detail.dig('FeeAmount', 'Amount').to_f / buyboxprice(vendor_asin).to_f) * 100 if buyboxprice(vendor_asin).to_f.positive?
+        commissiionfee ||= fee_detail.dig('FeeAmount', 'Amount')
+        vendorasin_hash[:commissionpct] = commissionpct.to_i
+        vendorasin_hash[:commissiionfee] = commissiionfee.to_f
+      when 'VariableClosingFee'
+        variableclosingfee ||= fee_detail.dig('FeeAmount', 'Amount')
+        vendorasin_hash[:variableclosingfee] = variableclosingfee.to_f
+      when 'FBAFees'
+        fba_fee ||= fee_detail.dig('FeeAmount', 'Amount')
+        vendorasin_hash[:fba_fee] = fba_fee.to_f
+        vendorasin_hash[:fba_fee] = fba_fee_by_item(size_tier) if fba_fee.to_f.zero?
       end
-      vendorasin_hash = generate_vendorasin_hash
-      next unless fee_estimate.dig('FeesEstimateIdentifier', 'IdValue')
-
-      vendorasin_hash[:asin] = fee_estimate.dig('FeesEstimateIdentifier', 'IdValue')
-      vendor_asin = @list.find { |vendor_asin_hash| vendor_asin_hash[:asin] == vendorasin_hash[:asin] }
-      fee_details = [fee_estimate.dig('FeesEstimate', 'FeeDetailList', 'FeeDetail')].flatten
-      size_tier = generate_size_tier(vendor_asin)
-      vendorasin_hash[:size_tier] = size_tier
-      fee_details.each do |fee_detail|
-        case fee_detail['FeeType']
-        when 'ReferralFee'
-          commissionpct ||= (fee_detail.dig('FeeAmount', 'Amount').to_f / buyboxprice(vendor_asin).to_f) * 100 if buyboxprice(vendor_asin).to_f.positive?
-          commissiionfee ||= fee_detail.dig('FeeAmount', 'Amount')
-          vendorasin_hash[:commissionpct] = commissionpct.to_i
-          vendorasin_hash[:commissiionfee] = commissiionfee.to_f
-        when 'VariableClosingFee'
-          variableclosingfee ||= fee_detail.dig('FeeAmount', 'Amount')
-          vendorasin_hash[:variableclosingfee] = variableclosingfee.to_f
-        when 'FBAFees'
-          fba_fee ||= fee_detail.dig('FeeAmount', 'Amount')
-          vendorasin_hash[:fba_fee] = fba_fee.to_f
-          vendorasin_hash[:fba_fee] = fba_fee_by_item(size_tier) if fba_fee.to_f.zero?
-        end
-      end
-      vendorasins_records << vendorasin_hash
     end
-    vendorasins_records.flatten
+    vendorasin_hash
   end
 
   def generate_vendorasin_hash

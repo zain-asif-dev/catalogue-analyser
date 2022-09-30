@@ -21,10 +21,10 @@ class FeeEstimateParseService < BaseService
       @result_array,
       FetchFeeEstimateService.new(user, @users, current_entries).fetch_and_process_data.flatten
     )
-  rescue StandardError => e
-    exception_printer(e)
-    retries += 1
-    retry if retries <= 3
+  # rescue StandardError => e
+  #   exception_printer(e)
+  #   retries += 1
+  #   retry if retries <= 3
   end
 
   def remaining_data
@@ -32,7 +32,7 @@ class FeeEstimateParseService < BaseService
       puts "Remaining: FOR FeeEstimateParseService #{@_cached_records.count}"
       return false if @_cached_records.blank?
 
-      return @_cached_records.shift(5)
+      return @_cached_records.shift(40)
     end
   end
 end

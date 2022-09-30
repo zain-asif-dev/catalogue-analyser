@@ -22,7 +22,7 @@ class MatchingProductParseService < BaseService
   end
 
   def send_fetch_and_process_request(user, retries, current_entries)
-    @result_array << FetchMatchingProductDataService.new(user, @users, current_entries).fetch_and_process_data(5)
+    @result_array << FetchMatchingProductDataService.new(user, @users, current_entries).fetch_and_process_data(20)
   rescue StandardError => e
     exception_printer(e)
     retries += 1
@@ -34,7 +34,7 @@ class MatchingProductParseService < BaseService
       puts "Remaining: FOR MatchingProductParseService #{@_cached_records.count}"
       return false if @_cached_records.blank?
 
-      return @_cached_records.shift(5)
+      return @_cached_records.shift(20)
     end
   end
 end

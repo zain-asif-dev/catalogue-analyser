@@ -2,8 +2,13 @@
 
 require 'dotenv/load'
 require 'aws-sdk-s3'
+require 'aws-sdk-signer'
+require 'aws-sdk-sts'
+require 'aws-sdk-sqs'
+require 'httparty'
 require 'json'
 require 'net/http'
+
 require_relative 'services/base_service'
 require_relative 'services/data_base_service'
 require_relative 'services/matching_product_parse_service'
@@ -36,7 +41,7 @@ class ReadS3File
     puts "Key-------------------------------#{key}"
     resp = @s3.get_object(bucket: ENV['AWS_INPUT_BUCKET_NAME'], key: key)
     @entries = JSON.parse(resp.body.read)
-    @entries = @entries.first(100) unless ENV['BASE_URL'].include?('sales.support')
+    @entries = @entries.first(20) unless ENV['BASE_URL'].include?('sales.support')
     process_entries(@entries)
     return if @entries.blank?
 
@@ -64,11 +69,11 @@ class ReadS3File
     end_time = Time.now
     update_file_status(50)
     puts "FeeEstimateParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
-    start_time = Time.now
-    GetCategoryParseService.new(@data_array, @users).start
-    end_time = Time.now
-    update_file_status(62.5)
-    puts "GetCategoryParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
+    # start_time = Time.now
+    # GetCategoryParseService.new(@data_array, @users).start
+    # end_time = Time.now
+    # update_file_status(62.5)
+    # puts "GetCategoryParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     # start_time = Time.now
     # JungleScoutEstSale.new(@data_array).start
     # end_time = Time.now
@@ -84,13 +89,13 @@ class ReadS3File
     update_file_status(87.5)
     puts "PrepFeeEstimateService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     start_time = Time.now
-    file_name, file_url = GenerateFileOutputService.new(@data_array.reject { |e| e[:status].include?('error') }).generate_catalog_output
+    file_name, file_url = GenerateFileOutputService.new(@data_array.reject { |e| e[:status]&.include?('error') }).generate_catalog_output
     end_time = Time.now
-    puts "PrepFeeEstimateService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
+    puts "GenerateFileOutputService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     end_t = Time.now
     puts "Total  StartTime: #{start_t}, EndTime: #{end_t}, Duration: #{((end_t - start_t) / 60).round(2)} mins"
-     Aws::S3::Resource.new.bucket(ENV['AWS_OUTPUT_BUCKET_NAME']).put_object({ key: key, body: @data_array.to_json, acl: 'public-read'})
-    # puts "-----------------------------#{s3_object.public_url}"
+    Aws::S3::Resource.new.bucket(ENV['AWS_OUTPUT_BUCKET_NAME']).put_object({ key: key, body: @data_array.to_json, acl: 'public-read'})
+    puts "-----------------------------#{s3_object.public_url}"
     update_file_status(100, file_name, file_url)
   end
 

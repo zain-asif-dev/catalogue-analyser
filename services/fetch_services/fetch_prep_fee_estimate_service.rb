@@ -12,6 +12,8 @@ class FetchPrepFeeEstimateService
   def initialize(user, users, list)
     initialize_common(user, users)
     @list = list.map { |entry| entry[:asin] }
+    update_user_and_client
+    @client = set_client
   end
 
   def set_client

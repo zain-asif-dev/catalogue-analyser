@@ -7,7 +7,6 @@ module FetchServicesHelperMethods
   def initialize_common(user, users)
     @user = user
     @users = users
-    @client = set_client
   end
 
   def fetch_and_process_data(slice_size)
@@ -16,7 +15,7 @@ module FetchServicesHelperMethods
     data_set.each do |data|
       vendor_asins << parse_data(data)
     end
-    vendor_asins
+    vendor_asins.flatten.reject{|a| a.nil?} 
   end
 
   def fetch_data_from_mws(slice_size)
@@ -28,7 +27,7 @@ module FetchServicesHelperMethods
         fetch_data(response_arr, list_item)
       end
     end
-    response_arr.flatten
+    response_arr.flatten.reject{|a| a.nil?}
   end
 
   def retry_mws_exception(retries)

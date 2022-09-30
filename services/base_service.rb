@@ -84,6 +84,7 @@ class BaseService
   private
 
   def random_proxy
-    ['95.211.175.167:13400', '108.59.14.200:13402'].sample
+    user_name = "lum-customer-c_c46d6753-zone-static-session-#{rand(100000)}"
+    "#{user_name}:#{ENV['PROXY_PASSWORD']}@zproxy.lum-superproxy.io:22225"
   end
 end
