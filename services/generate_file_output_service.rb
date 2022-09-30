@@ -212,7 +212,7 @@ class GenerateFileOutputService
   end
 
   def generate_file_name
-    "123-123-#{Time.now.to_datetime.strftime('%d%m%Y')}.xlsx"
+    "#{ENV['FILE_NAME'].gsub('.csv', '')}-#{ENV['FILE_ID']}-#{Time.now.to_datetime.strftime('%d%m%Y')}.xlsx"
   end
 
   def buy_box_seller(vendorasin)
