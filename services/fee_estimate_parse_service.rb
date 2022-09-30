@@ -21,10 +21,10 @@ class FeeEstimateParseService < BaseService
       @result_array,
       FetchFeeEstimateService.new(user, @users, current_entries).fetch_and_process_data.flatten
     )
-  # rescue StandardError => e
-  #   exception_printer(e)
-  #   retries += 1
-  #   retry if retries <= 3
+  rescue StandardError => e
+    exception_printer(e)
+    retries += 1
+    retry if retries <= 3
   end
 
   def remaining_data
