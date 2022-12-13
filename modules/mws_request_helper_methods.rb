@@ -2,7 +2,6 @@
 
 # Module to define methods to enhance reusability of common methods of all fetch services
 module MWSRequestHelperMethods
-
   def check_response(response, response_arr = nil)
     update_user_and_client
     return response if response_arr.nil?
@@ -40,48 +39,25 @@ module MWSRequestHelperMethods
   end
 
   def lowest_price_listing(params)
-    access_token = access_token_generation(@user['refresh_token'])
     endpoint = "#{ENV['SP_API_BASE_URL']}/batches/products/pricing/v0/itemOffers"
-    body = params.to_json
-    url = URI(endpoint)
-    https = Net::HTTP.new(url.host, url.port)
-    https.use_ssl = true
-    signer = get_signature(get_assume_role)
-    signature = signer.sign_request(http_method: 'POST', url: url, body: body, headers: { 'x-amz-access-token' => access_token })
-    request = Net::HTTP::Post.new(url)
-    request.body = body
-    request['Content-Type'] = 'application/json'
-    request.add_field 'x-amz-access-token', access_token
-    request.add_field 'X-Amz-Date', signature.headers['x-amz-date']
-    request.add_field 'X-Amz-Security-Token', signature.headers['x-amz-security-token']
-    request.add_field 'x-amz-content-sha256', signature.headers['x-amz-content-sha256']
-    request.add_field 'Authorization', signature.headers['authorization']
-    response = https.request(request)
-    return response if response.code == "200"
-
-    errors = JSON.parse(response.body)['errors']
-    if errors.present?
-      errors.each do |error|
-        next if error['code'].include?('InvalidInput')
-
-        if (error['code'].include?('QuotaExceeded') || error['code'].include?('Unauthorized'))
-          update_user_and_client
-          raise 'Auth or throttled'
-        end
-      end
-    end
+    sp_api_post_request(endpoint, params)
   end
 
   # Fetch the Estimated fee for the items
   def fetch_fee_estimate(params)
-    access_token = access_token_generation(@user['refresh_token'])
     endpoint = "#{ENV['SP_API_BASE_URL']}/products/fees/v0/feesEstimate"
+    sp_api_post_request(endpoint, params)
+  end
+
+  def sp_api_post_request(endpoint, params)
+    access_token = access_token_generation(@user['refresh_token'])
     body = params.to_json
     url = URI(endpoint)
     https = Net::HTTP.new(url.host, url.port)
     https.use_ssl = true
     signer = get_signature(get_assume_role)
-    signature = signer.sign_request(http_method: 'POST', url: url, body: body, headers: { 'x-amz-access-token' => access_token })
+    signature = signer.sign_request(http_method: 'POST', url: url, body: body,
+                                    headers: { 'x-amz-access-token' => access_token })
     request = Net::HTTP::Post.new(url)
     request.body = body
     request['Content-Type'] = 'application/json'
@@ -91,14 +67,14 @@ module MWSRequestHelperMethods
     request.add_field 'x-amz-content-sha256', signature.headers['x-amz-content-sha256']
     request.add_field 'Authorization', signature.headers['authorization']
     response = https.request(request)
-    return response if response.code == "200"
+    return response if response.code == '200'
 
     errors = JSON.parse(response.body)['errors']
     if errors.present?
       errors.each do |error|
         next if error['code'].include?('InvalidInput')
 
-        if (error['code'].include?('QuotaExceeded') || error['code'].include?('Unauthorized'))
+        if error['code'].include?('QuotaExceeded') || error['code'].include?('Unauthorized')
           update_user_and_client
           raise 'Auth or throttled'
         end
@@ -108,19 +84,20 @@ module MWSRequestHelperMethods
 
   def sp_api_request(endpoint, retries = 0)
     access_token = access_token_generation(@user['refresh_token'])
-    url = URI("#{endpoint}")
+    url = URI(endpoint.to_s)
     https = Net::HTTP.new(url.host, url.port)
     https.use_ssl = true
     signer = get_signature(get_assume_role)
-    signature = signer.sign_request(http_method: 'GET', url: "#{url}", headers: { 'x-amz-access-token' => access_token })
+    signature = signer.sign_request(http_method: 'GET', url: url.to_s,
+                                    headers: { 'x-amz-access-token' => access_token })
     request = Net::HTTP::Get.new(url)
     request.add_field 'x-amz-access-token', access_token
     request.add_field 'X-Amz-Date', signature.headers['x-amz-date']
-    request.add_field "X-Amz-Security-Token", signature.headers["x-amz-security-token"]
+    request.add_field 'X-Amz-Security-Token', signature.headers['x-amz-security-token']
     request.add_field 'x-amz-content-sha256', signature.headers['x-amz-content-sha256']
     request.add_field 'Authorization', signature.headers['authorization']
     response = https.request(request)
-    return response if response.code == "200"
+    return response if response.code == '200'
 
     errors = JSON.parse(response.read_body)['errors']
     if errors.present?
@@ -195,18 +172,16 @@ module MWSRequestHelperMethods
 
   # Region url
   def url_and_region_maping
-    { "us-east-1": ENV['SP_API_BASE_URL_North_America_REGION'] }
+    { 'us-east-1': ENV['SP_API_BASE_URL_North_America_REGION'] }
   end
 
   def grantless_access_token
-    begin
-      payload = grantless_access_token_payload
-      headers =  { 'Content-Type' => 'application/json' }
-      response = HTTParty.post("#{ENV['AUTHENTICATION_URL']}", body: payload.to_json, headers: headers)
-      response['access_token']
-    rescue => e
-      puts e.message
-    end
+    payload = grantless_access_token_payload
+    headers =  { 'Content-Type' => 'application/json' }
+    response = HTTParty.post(ENV['AUTHENTICATION_URL'].to_s, body: payload.to_json, headers: headers)
+    response['access_token']
+  rescue StandardError => e
+    puts e.message
   end
 
   # Access token generation of for getting the access token
