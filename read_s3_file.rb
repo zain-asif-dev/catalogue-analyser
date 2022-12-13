@@ -43,7 +43,7 @@ class ReadS3File
     @entries = JSON.parse(resp.body.read)
     @entries = @entries.first(20) unless ENV['BASE_URL'].include?('sales.support')
     process_entries(@entries)
-    return if @entries.blank?
+    return update_file_status(0, '-1', nil) if @entries.blank?
 
     start_t = Time.now
     puts 'File Read!!!!!!!!!!!!'
@@ -137,7 +137,7 @@ class ReadS3File
       entry['status'] = change_entry_status(entry)
       entry['product_id_value'].rjust(12, '0') if entry['product_id_type'] == 'UPC'
     end
-    puts "Total Entries Without Error--------------------#{@entries.reject { |entry| entry['status'] == 'error' }.size}"
+    puts "Total Entries Without Error-------------------#{@entries.reject! { |entry| entry['status'] == 'error' }.size}"
   end
 
   def change_entry_status(entry)
