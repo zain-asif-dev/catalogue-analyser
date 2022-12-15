@@ -97,6 +97,10 @@ class ReadS3File
     Aws::S3::Resource.new.bucket(ENV['AWS_OUTPUT_BUCKET_NAME']).put_object({ key: key, body: @data_array.to_json, acl: 'public-read'})
     # puts "-----------------------------#{s3_object.public_url}"
     update_file_status(100, file_name, file_url)
+  rescue StandardError => e
+    puts e.message
+    puts e.backtrace.join('\n')
+    update_file_status(0, '-1', nil)
   end
 
   def update_file_status(progress, file_name = nil, file_url = nil)
@@ -137,7 +141,7 @@ class ReadS3File
       entry['status'] = change_entry_status(entry)
       entry['product_id_value'].rjust(12, '0') if entry['product_id_type'] == 'UPC'
     end
-    puts "Total Entries Without Error-------------------#{@entries.reject! { |entry| entry['status'] == 'error' }.size}"
+    puts "Total Entries Without Error-------------------#{@entries.reject { |entry| entry['status'] == 'error' }&.size}"
   end
 
   def change_entry_status(entry)
