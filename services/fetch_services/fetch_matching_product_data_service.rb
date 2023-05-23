@@ -16,7 +16,7 @@ class FetchMatchingProductDataService
   end
 
   def parse_data(product_data)
-    return [{ data: product_data, error: "Null data hash!" }] if product_data.nil?
+    return [{ data: product_data, error: 'Null data hash!' }] if product_data.nil?
 
     asins_data = []
     return asins_data if product_data_error(product_data, asins_data)
@@ -59,7 +59,8 @@ class FetchMatchingProductDataService
   end
 
   def entry_hash_required_data(entry)
-    return { error: "Entry data null!" } if entry.nil?
+    return { error: 'Entry data null!' } if entry.nil?
+
     {
       status: entry['status'],
       sku: entry['sku'],
@@ -71,8 +72,6 @@ class FetchMatchingProductDataService
   def current_entry(product_data_id)
     @entries.find { |item| item['product_id_value'] == product_data_id }
   end
-
-  
 
   def add_asin_hash_to_asins_array(asin_data, upc, ean, isbn)
     package_quantity = asin_data.dig('attributes', 'item_package_quantity', 0, 'value') || 1
@@ -151,7 +150,7 @@ class FetchMatchingProductDataService
       elsif image_hash['height'] < 1000
         medium_image = image_hash.dig('link')
       else
-        large_image = image_hash.dig('link') if image_hash['height'] < 100
+        large_image = image_hash.dig('link')
       end
     end
     {
@@ -184,9 +183,9 @@ class FetchMatchingProductDataService
 
     return centi_meter_to_inches(hash['value']).round(2) if hash['unit'].downcase == 'centimeters'
 
-    puts "**************************Check required********************************************* "
+    puts '**************************Check required********************************************* '
     puts hash['unit'].downcase
-    puts "*************************************************************************************"
+    puts '*************************************************************************************'
   end
 
   def centi_meter_to_inches(cm)
@@ -197,16 +196,16 @@ class FetchMatchingProductDataService
     return if hash.nil?
 
     unit = hash['unit'].upcase
-    
+
     shipping_weight = hash['value'].to_f
 
     return unless unit
 
-    return (shipping_weight/454.to_f).round(2) if ['G', 'GRAM', 'GRAMS'].include?(unit)
+    return (shipping_weight / 454.to_f).round(2) if ['G', 'GRAM', 'GRAMS'].include?(unit)
     return shipping_weight.round(2) if ['LB', 'LBS', 'POUND', 'POUNDS'].include?(unit)
-    return (shipping_weight/16.to_f).round(2) if ['OZ', 'OUNCE', 'OUNCES'].include?(unit)
-    return (shipping_weight/2.205.to_f).round(2) if ['KG', 'KILOGRAMS'].include?(unit)
-    return (shipping_weight/453592.37.to_f).round(2) if ['MG', 'MILLIGRAMS'].include?(unit)
+    return (shipping_weight / 16.to_f).round(2) if ['OZ', 'OUNCE', 'OUNCES'].include?(unit)
+    return (shipping_weight / 2.205.to_f).round(2) if ['KG', 'KILOGRAMS'].include?(unit)
+    return (shipping_weight / 453_592.37.to_f).round(2) if ['MG', 'MILLIGRAMS'].include?(unit)
   end
 
   def fetch_data(response_arr, list_item)
@@ -218,7 +217,7 @@ class FetchMatchingProductDataService
       parsed_response = JSON.parse(catalog_matching_product(list_item, next_token).read_body)
       response << parsed_response.dig('items')
     end
-    
+
     check_response(response.flatten, response_arr)
   end
 end
