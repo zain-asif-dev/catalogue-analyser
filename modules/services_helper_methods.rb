@@ -3,14 +3,22 @@
 # Module to define methods to enhance reusability of common methods of all services
 module ServicesHelperMethods
   def initialize_common(entries, thread_count, users = nil)
+    # Filter out entries with 'error' status
     @entries = entries.reject { |entry| entry[:status]&.include?('error') }
-    return if entries.blank?
+    puts @entries.count
+    return if @entries.blank?
 
-    initialize_defined_variables(thread_count, entries)
+    initialize_defined_variables(thread_count, @entries)
+    
+    # Initialize semaphores for thread safety
     @search_key_semaphore = Mutex.new
     @search_user_semaphore = Mutex.new
     @data_set_semaphore = Mutex.new
+
+    # Initialize users if provided
     initialize_users(users) unless users.nil?
+
+    # Cache records
     @_cached_records = Array.new(@entries.to_a)
   end
 
@@ -27,8 +35,13 @@ module ServicesHelperMethods
 
   def available_user
     @search_user_semaphore.synchronize do
-      agent = @users[user_index]
-      agent.blank? ? @users.sample : agent
+      # Ensure @users is initialized and not empty
+      if @users && @users.any?
+        agent = @users[@current_user_index]
+        agent.blank? ? @users.sample : agent
+      else
+        nil
+      end
     end
   end
 
@@ -58,7 +71,8 @@ module ServicesHelperMethods
     data_array.each do |data_hash|
       next if data_hash.nil? || data_hash.empty?
 
-      result_array.find { |result_hash| result_hash[:asin] == data_hash[:asin] }.merge!(data_hash)
+      result_hash = result_array.find { |result| result[:asin] == data_hash[:asin] }
+      result_hash.merge!(data_hash) if result_hash
     end
   end
 
