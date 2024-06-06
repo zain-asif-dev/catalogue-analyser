@@ -5,9 +5,6 @@ module ServicesHelperMethods
   def initialize_common(entries, thread_count, users = nil)
     # Filter out entries with 'error' status
     @entries = entries.reject { |entry| entry[:status]&.include?('error') }
-    puts @entries.count
-    return if @entries.blank?
-
     initialize_defined_variables(thread_count, @entries)
     
     # Initialize semaphores for thread safety
@@ -34,11 +31,14 @@ module ServicesHelperMethods
   end
 
   def available_user
+    # Ensure @search_user_semaphore is initialized
+    raise "search_user_semaphore not initialized" unless defined?(@search_user_semaphore) && @search_user_semaphore
+
     @search_user_semaphore.synchronize do
       # Ensure @users is initialized and not empty
       if @users && @users.any?
         agent = @users[@current_user_index]
-        agent.blank? ? @users.sample : agent
+        agent || @users.sample
       else
         nil
       end
@@ -46,6 +46,9 @@ module ServicesHelperMethods
   end
 
   def start
+    # Ensure that initialize_common has been called
+    raise "Common initialization not done" unless defined?(@search_user_semaphore) && @search_user_semaphore
+
     @threads = []
     (0...@thread_size).each do
       @threads << Thread.new { do_scrap }

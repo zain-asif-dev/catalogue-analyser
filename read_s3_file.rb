@@ -8,6 +8,7 @@ require 'aws-sdk-sqs'
 require 'httparty'
 require 'json'
 require 'net/http'
+# require 'byebug' # Enable for debugging
 
 require_relative 'services/base_service'
 require_relative 'services/data_base_service'

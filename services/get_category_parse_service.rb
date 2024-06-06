@@ -41,7 +41,7 @@ class GetCategoryParseService < BaseService
 
   def fetch_categories_data(user, asin)
     @user = user
-    client = set_client
+    # client = set_client
     categories = client.get_product_categories_for_asin(user['mws_market_place_id'], asin)
     map_category(asin, check_response(categories))
   end
