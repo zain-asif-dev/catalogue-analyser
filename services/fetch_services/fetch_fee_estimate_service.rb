@@ -20,16 +20,16 @@ class FetchFeeEstimateService
     data_set.each do |data|
       vendor_asins << parse_data(data)
     end
-    vendor_asins.flatten
+    vendor_asins&.flatten
   end
 
   def fetch_data_from_mws
     response_arr = []
-    retries = 0
+    retries = 0   
     retry_mws_exception(retries) do
       fetch_data(response_arr, generate_fee_params)
     end
-    response_arr.flatten
+    response_arr&.flatten
   end
 
   def fetch_data(response_arr, fee_params)
@@ -225,5 +225,5 @@ class FetchFeeEstimateService
       vendorasin[:width].to_f.zero? &&
       vendorasin[:length].to_f.zero? &&
       vendorasin[:weight].to_f.zero?
-  end
+  end   
 end

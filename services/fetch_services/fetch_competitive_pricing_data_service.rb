@@ -24,7 +24,7 @@ class FetchCompetitivePricingDataService
       next if product.dig('CompetitivePricing', 'CompetitivePrices').blank?
       asin_arr << vendor_asin_hash(asin, product)
     end
-    asin_arr.flatten
+    asin_arr&.flatten
   end
 
   def vendor_asin_hash(asin, product)

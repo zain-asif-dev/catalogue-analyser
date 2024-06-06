@@ -38,6 +38,12 @@ module MWSRequestHelperMethods
     encoded_token
   end
 
+  # Get prep instruction by ASIN
+  def get_prep_instrcutions_by_asin(asin_list)
+    endpoint = "#{ENV['SP_API_BASE_URL']}/fba/inbound/v0/prepInstructions?ShipToCountryCode=US&ASINList=#{asin_list.join('%2C')}"
+    sp_api_request(endpoint)
+  end
+
   def lowest_price_listing(params)
     endpoint = "#{ENV['SP_API_BASE_URL']}/batches/products/pricing/v0/itemOffers"
     sp_api_post_request(endpoint, params)

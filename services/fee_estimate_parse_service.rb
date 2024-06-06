@@ -19,7 +19,7 @@ class FeeEstimateParseService < BaseService
   def send_fetch_and_process_request(user, retries, current_entries)
     merge_same_asin_hash(
       @result_array,
-      FetchFeeEstimateService.new(user, @users, current_entries).fetch_and_process_data.flatten
+      FetchFeeEstimateService.new(user, @users, current_entries).fetch_and_process_data&.flatten
     )
   rescue StandardError => e
     exception_printer(e)

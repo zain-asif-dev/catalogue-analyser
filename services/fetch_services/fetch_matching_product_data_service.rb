@@ -218,6 +218,6 @@ class FetchMatchingProductDataService
       response << parsed_response.dig('items')
     end
 
-    check_response(response.flatten, response_arr)
+    check_response(response&.flatten, response_arr)
   end
 end

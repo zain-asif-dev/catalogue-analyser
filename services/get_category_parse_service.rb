@@ -8,7 +8,7 @@ require_relative 'base_service'
 require_relative '../modules/services_helper_methods'
 require_relative '../modules/mws_request_helper_methods'
 
-# GetCategoryParseService
+# GetCategoryParseService Not Required anymore
 class GetCategoryParseService < BaseService
   include ServicesHelperMethods
   include MWSRequestHelperMethods
@@ -51,7 +51,7 @@ class GetCategoryParseService < BaseService
 
     return map_category_error(asin, categories) if categories['Error'].present?
 
-    categories = [categories['Self']].flatten
+    categories = [categories['Self']]&.flatten
     category = categories.first
     category_by_asin = {}
     category_by_asin[:browse_path_by_id], category_by_asin[:browse_path_by_name] = construct_ids_and_names(category)

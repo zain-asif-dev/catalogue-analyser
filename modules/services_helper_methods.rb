@@ -7,7 +7,9 @@ module ServicesHelperMethods
     return if entries.blank?
 
     initialize_defined_variables(thread_count, entries)
-    initialize_semaphores
+    @search_key_semaphore = Mutex.new
+    @search_user_semaphore = Mutex.new
+    @data_set_semaphore = Mutex.new
     initialize_users(users) unless users.nil?
     @_cached_records = Array.new(@entries.to_a)
   end
@@ -23,12 +25,6 @@ module ServicesHelperMethods
     @current_user_index = 0
   end
 
-  def initialize_semaphores
-    @search_key_semaphore = Mutex.new
-    @search_user_semaphore = Mutex.new
-    @data_set_semaphore = Mutex.new
-  end
-
   def available_user
     @search_user_semaphore.synchronize do
       agent = @users[user_index]
@@ -42,7 +38,7 @@ module ServicesHelperMethods
       @threads << Thread.new { do_scrap }
     end
     @threads.each(&:join)
-    @result_array.flatten
+    @result_array&.flatten
   rescue StandardError => e
     exception_printer(e)
   end

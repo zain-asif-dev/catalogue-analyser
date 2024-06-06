@@ -14,7 +14,9 @@ class MatchingProductParseService < BaseService
     return if entries.blank?
 
     initialize_defined_variables(THREAD_COUNT)
-    initialize_semaphores
+    @search_key_semaphore = Mutex.new
+    @search_user_semaphore = Mutex.new
+    @data_set_semaphore = Mutex.new
     @entries = entries.reject { |entry| entry['status'] == 'error' }
     @users = users
     @_cached_records = Array.new(@entries.to_a)

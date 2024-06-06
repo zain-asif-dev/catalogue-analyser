@@ -16,35 +16,32 @@ class FetchPrepFeeEstimateService
     @client = set_client
   end
 
-  def set_client
-    MWS.fulfillment_inbound_shipment(
-      merchant_id: @user['merchant_id'],
-      aws_secret_access_key: ENV['AWS_SECRET_ACCESS_KEY'],
-      marketplace: @user['mws_market_place_id'],
-      aws_access_key_id: ENV['AWS_ACCESS_KEY_ID'],
-      auth_token: @user['auth_token'])
-  end
-
   def parse_data
     response_array = []
-    response = @client.get_prep_instructions_for_asin('US', @list).parse
-    prep_list = [response['ASINPrepInstructionsList']].flatten
+    response = fetch_data(response_array)
+    prep_list = [response['ASINPrepInstructionsList']]&.flatten
 
     prep_list.each do |prep_item|
       next if prep_item.blank?
 
-      asins_information = [prep_item['ASINPrepInstructions']].flatten
+      asins_information = [prep_item['ASINPrepInstructions']]&.flatten
       asins_information.each do |asin_information|
-        instructions = [asin_information['PrepInstructionList']].flatten
+        instructions = [asin_information['PrepInstructionList']]&.flatten
         instruction_str ||= ''
 
         instructions.each do |instruction|
-          instruction_str += "#{[instruction['PrepInstruction']].flatten.join(',')}," if instruction.present?
+          instruction_str += "#{[instruction['PrepInstruction']]&.flatten&.join(',')}," if instruction.present?
         end
 
         response_array << { asin: asin_information['ASIN'], prep_instructions: instruction_str.chomp(',') }
       end
     end
     response_array
+  end
+
+  def fetch_data(response_arr)
+    response = JSON.parse(get_prep_instructions_for_asin(@list).read_body)
+    # @client.get_competitive_pricing_for_asin(ENV['MARKETPLACE_ID'], list_item)
+    check_response(response, response_arr)
   end
 end

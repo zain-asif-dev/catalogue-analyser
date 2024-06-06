@@ -73,7 +73,7 @@ class GenerateFileOutputService
     percentage_cells = [15]
 
     red_background_cells = [0, 1, 3, 8, 9, 12, 18]
-    red_text_cells = [12, fba_seller_index].flatten
+    red_text_cells = [12, fba_seller_index]&.flatten
     yellow_text_cells = [12]
     always_green_cells = [12]
     roi_cell = 14
@@ -99,12 +99,12 @@ class GenerateFileOutputService
                             end
       end
 
-      if @vendor_asins.flatten.count.zero?
+      if @vendor_asins&.flatten&.count&.zero?
         puts '--------------There  is an issue with the File or the Vendor-------------------'
         return -1
       end
 
-      @vendor_asins.flatten.each_with_index do |item, index|
+      @vendor_asins&.flatten&.each_with_index do |item, index|
         row_index_for_formula = index + 2
         bbp = mapper_hash.key('BuyBox Price')
         cost = mapper_hash.key('Cost')
