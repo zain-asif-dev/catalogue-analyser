@@ -199,6 +199,7 @@ class FetchFeeEstimateService
         3.65
       else
         3.06
+      end
     elsif size_tier.include?('Large Standard Size')
       if weight <= 0.25
         3.68
@@ -229,6 +230,7 @@ class FetchFeeEstimateService
         6.92 + extra_weight_charges
       else
         3.68
+      end
     elsif size_tier.include?('Large Bulky')
       extra_weight_charges = ((weight - 1) * 0.38)
       9.61 + extra_weight_charges
