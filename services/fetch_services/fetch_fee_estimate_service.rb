@@ -155,44 +155,99 @@ class FetchFeeEstimateService
     shortest_side, median_side, longest_side = [length, width, height].sort
     girth = ((shortest_side + median_side) * 2)
     length_plus_girth = longest_side + girth
-    if weight <= 0.75 && longest_side <= 15 && median_side <= 12 && shortest_side <= 0.75
+    if weight <= 1 && longest_side <= 15 && median_side <= 12 && shortest_side <= 0.75
       product_size_tier = 'Small Standard Size'
     elsif weight <= 20 && longest_side <= 18 && median_side <= 14 && shortest_side <= 8
       product_size_tier = 'Large Standard Size'
-    elsif weight <= 70 && longest_side <= 60 && median_side <= 30 && length_plus_girth <= 130
-      product_size_tier = 'Small Oversize'
-    elsif weight <= 150 && longest_side <= 108
-      if length_plus_girth <= 130
-        product_size_tier = 'Medium Oversize'
-      elsif length_plus_girth <= 165
-        product_size_tier = 'Large Oversize'
-      end
-    elsif weight > 150 && longest_side > 108 && length_plus_girth > 165
-      product_size_tier = 'Special Oversize'
+    elsif weight <= 50 && longest_side <= 59 && median_side <= 33 && length_plus_girth <= 130
+      product_size_tier = 'Large Bulky'
+    elsif weight <= 50 && median_side > 33 && shortest_side > 33 && length_plus_girth > 130
+      product_size_tier = 'Extra Large 0 to 50 lb'
+    elsif (weight > 50 && weight <= 70) && median_side > 33 && shortest_side > 33 && length_plus_girth > 130
+      product_size_tier = 'Extra Large 50+ to 70 lb'
+    elsif (weight > 70 && weight <= 150) && median_side > 33 && shortest_side > 33 && length_plus_girth > 130
+      product_size_tier = 'Extra Large 70+ to 150 lb'
+    elsif weight > 150 && median_side > 33 && shortest_side > 33 && length_plus_girth > 130
+      product_size_tier = 'Extra Large 150+ lb'
     else
       product_size_tier = 'N/A'
     end
     product_size_tier
   end
 
-  def fba_fee_by_item(size_tier)
+  def fba_fee_by_item(size_tier, weight)
     # puts "size_tier----------------------#{size_tier}"
-    return 2.63 if size_tier.nil?
+    return 3.06 if size_tier.nil?
 
-    if size_tier.include?('Small Standard')
-      2.50
-    elsif size_tier.include?('Large Standard')
-      3.48
-    elsif size_tier.include?('Small Oversize')
-      8.26
-    elsif size_tier.include?('Mediumn Oversize')
-      11.37
-    elsif size_tier.include?('Large Oversize')
-      75.78
-    elsif size_tier.include?('Special Oversize')
-      137.32
+    extra_weight_charges = 0
+    if size_tier.include?('Small Standard Size')
+      if weight <= 0.125
+        3.06
+      elsif weight > 0.125  && weight <= 0.25
+        3.15
+      elsif weight > 0.25   && weight <= 0.375
+        3.24
+      elsif weight > 0.375  && weight <= 0.5
+        3.33
+      elsif weight > 0.5    && weight <= 0.625
+        3.43
+      elsif weight > 0.625  && weight <= 0.75
+        3.53
+      elsif weight > 0.75   && weight <= 0.875
+        3.60
+      elsif weight > 0.875  && weight <= 1
+        3.65
+      else
+        3.06
+      end
+    elsif size_tier.include?('Large Standard Size')
+      if weight <= 0.25
+        3.68
+      elsif weight > 0.25   && weight <= 0.5
+        3.90
+      elsif weight > 0.5    && weight <= 0.75
+        4.15
+      elsif weight > 0.75  && weight <= 1
+        4.55
+      elsif weight > 1  && weight <= 1.25
+        4.99
+      elsif weight > 1.25  && weight <= 1.5
+        5.37
+      elsif weight > 1.5  && weight <= 1.75
+        5.52
+      elsif weight > 1.75  && weight <= 2
+        5.77
+      elsif weight > 2  && weight <= 2.25
+        5.87
+      elsif weight > 2.25  && weight <= 2.5
+        6.05
+      elsif weight > 2.5  && weight <= 2.75
+        6.21
+      elsif weight > 2.75  && weight <= 3
+        6.62
+      elsif weight > 3
+        extra_weight_charges = (((weight - 3) * 16) / 4) * 0.08
+        6.92 + extra_weight_charges
+      else
+        3.68
+      end
+    elsif size_tier.include?('Large Bulky')
+      extra_weight_charges = ((weight - 1) * 0.38)
+      9.61 + extra_weight_charges
+    elsif size_tier.include?('Extra Large 0 to 50 lb')
+      extra_weight_charges = ((weight - 1) * 0.38)
+      26.33 + extra_weight_charges
+    elsif size_tier.include?('Extra Large 50+ to 70 lb')
+      extra_weight_charges = ((weight - 51) * 0.75)
+      40.12 + extra_weight_charges
+    elsif size_tier.include?('Extra Large 70+ to 150 lb')
+      extra_weight_charges = ((weight - 71) * 0.75)
+      54.81 + extra_weight_charges
+    elsif size_tier.include?('Extra Large 150+ lb')
+      extra_weight_charges = ((weight - 151) * 0.19)
+      194.95 + extra_weight_charges
     else
-      2.63
+      3.06
     end
   end
 
@@ -225,5 +280,5 @@ class FetchFeeEstimateService
       vendorasin[:width].to_f.zero? &&
       vendorasin[:length].to_f.zero? &&
       vendorasin[:weight].to_f.zero?
-  end   
+  end
 end
