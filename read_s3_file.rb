@@ -53,6 +53,7 @@ class ReadS3File
     start_time = Time.now
     @data_array = MatchingProductParseService.new(@entries, @users).start
     end_time = Time.now
+    @data_array = @data_array.uniq { |hash| hash[:asin] }
     update_file_status(12.5)
     puts "MatchingProductParseService StartTime: #{start_time}, EndTime: #{end_time}, Duration: #{((end_time - start_time) / 60).round(2)} mins"
     start_time = Time.now

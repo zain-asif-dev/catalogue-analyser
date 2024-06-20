@@ -30,7 +30,7 @@ class GenerateFileOutputService
     FileUtils.mkdir_p directory_path
     headers = ['ASIN', 'AMAZON UPC', 'Cost', 'Bundle Quantity', 'Bundle Cost', 'Case Quantity',
                'ESTIMATED amazon bundle cost', 'ESTIMATED amazon bundle quantity', 'ITEM NUMBER',
-               'Supplier Product Description', 'Amazon Product Description', 'Estimated Sales Monthly', 'Sales Rank',
+               'Supplier Product Description', 'Amazon Product Description', 'Sales Rank',
                'BuyBox Price', 'Net Profit $USD', 'ROI',
                '# Total Offers', 'If Amazon is Selling', 'FBA Fee',
                'Reference Offer', 'Amazon Offers', 'Storage Fee', 'Complete FBA Fee',
@@ -39,7 +39,7 @@ class GenerateFileOutputService
                '# FBM Offers', 'Lowest FBA Offer',
                'Lowest MFN Offer', 'IsBuybox FBA', 'Product Type', 'Weight', 'Length', 'Width', 'Height',
                'Package Weight',
-               'Package Length', 'Package Width', 'Package Height', 'SIZE TIER', 'Brand']
+               'Package Length', 'Package Width', 'Package Height', 'SIZE TIER', 'Brand', 'Similar Asins']
 
     @columns_not_required.to_s.split(',').map { |value| headers.delete(value) }
     mapper_hash = {}
@@ -49,7 +49,7 @@ class GenerateFileOutputService
     blue_header_indexes = ['ASIN', 'AMAZON UPC', 'Cost', 'Bundle Quantity', 'Case Quantity', 'ESTIMATED amazon bundle cost',
                            'ESTIMATED amazon bundle quantity', 'ITEM NUMBER', 'Supplier Product Description', 'BuyBox Price', 'Net Profit $USD']
     # yellow_header_indexes = [4, 10, 11, 12, 16]
-    yellow_header_indexes = ['Bundle Cost', 'Amazon Product Description', 'Estimated Sales Monthly', 'Sales Rank', '# Total Offers']
+    yellow_header_indexes = ['Bundle Cost', 'Amazon Product Description', 'Sales Rank', '# Total Offers']
 
     xlsx_package = Axlsx::Package.new
     xlsx_package.use_autowidth = true
@@ -136,7 +136,6 @@ class GenerateFileOutputService
           'ITEM NUMBER': item[:sku],
           'Supplier Product Description': remove_special_characters(item[:item_description]),
           'Amazon Product Description': remove_special_characters(title(item)),
-          'Estimated Sales Monthly': item[:salespermonth] || 0,
           'Sales Rank': item[:salesrank],
           'BuyBox Price': buyboxprice(item),
           'Net Profit $USD': formula_string,
@@ -168,16 +167,17 @@ class GenerateFileOutputService
           'Package Width': item[:packagewidth],
           'Package Height': item[:packageheight],
           'SIZE TIER': item[:size_tier],
-          'Brand': item[:brand]
+          'Brand': item[:brand],
+          'Similar Asins': item[:similar_asins]
         }
-
         requried_to_remove = @columns_not_required.to_s.split(',')&.map(&:to_sym)
         row = sheet.add_row record.except(*requried_to_remove).values
-
         if item_profit.zero?
           row.style = default_row_style
-        else
-          row.style = item_profit.negative? ? red_row_style : green_row_style
+        elsif item_profit > 0
+          row.style = green_row_style
+        elsif item_profit < 0
+          row.style = red_row_style
         end
         sheet.column_widths 12, 12, 10, 10, 10, 10, 10, 10, 10, 30, 30, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,10, 10, 10, 10, 10, 10, 10, 15, 10, 10, 10, 10, 10, 10, 10
         row.cells.each_with_index do |cell, cell_index|
@@ -226,10 +226,12 @@ class GenerateFileOutputService
   def excel_profit(vendoritem)
     (
       buyboxprice(vendoritem).to_f -
-      vendoritem[:cost_price].to_f *
-      vendoritem[:packcount].to_i -
+      (vendoritem[:cost_price].to_f *
+      (vendoritem[:packcount].to_i.zero? ? 1 : vendoritem[:packcount].to_i)) -
       vendoritem[:fba_fee].to_f -
-      vendoritem[:commissiionfee].to_f
+      vendoritem[:commissiionfee].to_f -
+      current_storage_fee(vendoritem).to_f -
+      ENV['inbound_fee'].to_f
     ).to_f.round(2)
   end
 

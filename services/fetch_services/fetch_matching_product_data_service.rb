@@ -38,6 +38,7 @@ class FetchMatchingProductDataService
   end
 
   def generate_asins_data_hash(asin_data, product_data_id)
+    similar_asins = asin_data['similar_asins']
     upc = nil
     ean = nil
     isbn = nil
@@ -55,7 +56,7 @@ class FetchMatchingProductDataService
         end
       end
     end
-    add_asin_hash_to_asins_array(asin_data, upc, ean, isbn).merge(entry_hash_required_data(current_entry(product_data_id)))
+    add_asin_hash_to_asins_array(asin_data, upc, ean, isbn, similar_asins).merge(entry_hash_required_data(current_entry(product_data_id)))
   end
 
   def entry_hash_required_data(entry)
@@ -73,7 +74,7 @@ class FetchMatchingProductDataService
     @entries.find { |item| item['product_id_value'] == product_data_id }
   end
 
-  def add_asin_hash_to_asins_array(asin_data, upc, ean, isbn)
+  def add_asin_hash_to_asins_array(asin_data, upc, ean, isbn, similar_asins)
     package_quantity = asin_data.dig('attributes', 'item_package_quantity', 0, 'value') || 1
     {
       asin: asin_data['asin'],
@@ -81,7 +82,8 @@ class FetchMatchingProductDataService
       salesrank: sales_rank(asin_data),
       upc: upc,
       ean: ean,
-      isbn: isbn
+      isbn: isbn,
+      similar_asins: similar_asins
     }.merge(generating_asin_hash(asin_data))
   end
 
@@ -217,7 +219,24 @@ class FetchMatchingProductDataService
       parsed_response = JSON.parse(catalog_matching_product(list_item, next_token).read_body)
       response << parsed_response.dig('items')
     end
-
+    response = get_matching_items(response, response_arr)
     check_response(response&.flatten, response_arr)
+  end
+
+  def get_matching_items(response, response_arr)
+    data = (response_arr && !response_arr.blank? ? response_arr : response)
+    response&.flatten.each do |res|
+      item_asin = res.dig("asin")
+      item_desc = res.dig("attributes", "item_name", 0, "value")
+      raw_response = catalog_matching_product_by_description(item_desc)
+      matching_items = JSON.parse(raw_response.read_body).dig('items')
+      matching_items = (matching_items.map { |item| item if item["asin"] != item_asin } - [nil]).uniq
+      res["similar_asins"] = matching_items.map { |item| item["asin"]}
+      matching_items.each do |m_item|
+        response << m_item unless data.flatten.map { |raw_res| raw_res["asin"] }.include?(m_item["asin"])
+      end
+    end
+
+    return response
   end
 end

@@ -29,6 +29,14 @@ module MWSRequestHelperMethods
     sp_api_request(endpoint)
   end
 
+  # Get matching products according to the item description
+  def catalog_matching_product_by_description(item_description, page_token = nil)
+    item_description = URI.encode_www_form_component(item_description)#item_description.map { |desc| URI.encode_www_form_component(desc) }.join('%2C')
+    endpoint = "#{ENV['SP_API_BASE_URL']}/catalog/2022-04-01/items?keywords=#{item_description}&marketplaceIds=#{ENV['MARKETPLACE_ID']}&includedData=attributes%2Cdimensions%2CsalesRanks%2Cidentifiers%2Cimages%2CproductTypes&pageSize=10"
+    endpoint += "&pageToken=#{page_token}" if page_token.present?
+    sp_api_request(endpoint)
+  end
+
   def percent_encode(page_token)
     encoded_token = ''
     page_token.each do |ch|
