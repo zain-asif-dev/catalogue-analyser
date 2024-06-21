@@ -128,7 +128,7 @@ class GenerateFileOutputService
           'ASIN': item[:asin],
           'AMAZON UPC': item[:upc],
           'Cost': item[:cost_price].to_f,
-          'Bundle Quantity': 1,
+          'Bundle Quantity': item[:packagequantity].to_i.zero? ? 1 : item[:packagequantity].to_i,
           'Bundle Cost': bundle_cost_formula,
           'Case Quantity': (item[:case_quantity] || 1),
           'ESTIMATED amazon bundle cost': amazon_pack_cost_formula,
@@ -227,7 +227,7 @@ class GenerateFileOutputService
     (
       buyboxprice(vendoritem).to_f -
       (vendoritem[:cost_price].to_f *
-      (vendoritem[:packcount].to_i.zero? ? 1 : vendoritem[:packcount].to_i)) -
+      (vendoritem[:packagequantity].to_i.zero? ? 1 : vendoritem[:packagequantity].to_i)) -
       vendoritem[:fba_fee].to_f -
       vendoritem[:commissiionfee].to_f -
       current_storage_fee(vendoritem).to_f -
