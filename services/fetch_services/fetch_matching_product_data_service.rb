@@ -83,7 +83,8 @@ class FetchMatchingProductDataService
       upc: upc,
       ean: ean,
       isbn: isbn,
-      similar_asins: similar_asins
+      similar_asins: similar_asins,
+      inbound_fee: (ENV['inbound_fee'] || 0)
     }.merge(generating_asin_hash(asin_data))
   end
 
