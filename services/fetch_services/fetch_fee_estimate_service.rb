@@ -226,25 +226,25 @@ class FetchFeeEstimateService
       elsif weight > 2.75  && weight <= 3
         6.62
       elsif weight > 3
-        extra_weight_charges = (((weight - 3) * 16) / 4) * 0.08
+        extra_weight_charges = (((weight - 3) * 16) / 4).ceil * 0.08
         6.92 + extra_weight_charges
       else
         3.68
       end
     elsif size_tier.include?('Large Bulky')
-      extra_weight_charges = ((weight - 1) * 0.38)
+      extra_weight_charges = ((weight - 1).ceil * 0.38)
       9.61 + extra_weight_charges
     elsif size_tier.include?('Extra Large 0 to 50 lb')
-      extra_weight_charges = ((weight - 1) * 0.38)
+      extra_weight_charges = ((weight - 1).ceil * 0.38)
       26.33 + extra_weight_charges
     elsif size_tier.include?('Extra Large 50+ to 70 lb')
-      extra_weight_charges = ((weight - 51) * 0.75)
+      extra_weight_charges = ((weight - 51).ceil * 0.75)
       40.12 + extra_weight_charges
     elsif size_tier.include?('Extra Large 70+ to 150 lb')
-      extra_weight_charges = ((weight - 71) * 0.75)
+      extra_weight_charges = ((weight - 71).ceil * 0.75)
       54.81 + extra_weight_charges
     elsif size_tier.include?('Extra Large 150+ lb')
-      extra_weight_charges = ((weight - 151) * 0.19)
+      extra_weight_charges = ((weight - 151).ceil * 0.19)
       194.95 + extra_weight_charges
     else
       3.06
